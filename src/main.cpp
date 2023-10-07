@@ -1,18 +1,19 @@
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_SSD1306.h>
 #include <Arduino.h>
+#include "neopixel.h"
+#include "simplify_deg.h"
+
+#define CenterX(_size, _x, _charnum) (_x - (((6 * (_charnum - 1) * _size) + (5 * _size)) / 2))
+#define CenterY(_size, _y) (_y - (7 / 2 * _size))
 
 const uint8_t led_pin = 2;
-const uint8_t buzzer_pin = 8;
+const uint8_t buzzer_pin = 9;
 const uint8_t button_pin[3] = {6, 7, 5};   // center, left, right
 
-Adafruit_NeoPixel pixels(16, led_pin, NEO_GRB + NEO_KHZ800);
 Adafruit_SSD1306 oled(128, 64, &Wire, -1);
+NeoPixel led;
 
-void led_effect(uint8_t led_mode_);
-void led(int8_t led_num_, uint8_t red_, uint8_t green_, uint8_t blue_);
-void print(String str_, uint8_t size_, uint8_t x_ = 0, uint8_t y_ = 0);
-void print_continue(String str_);
 void print_center(String str_, uint8_t size_, uint8_t y_ = 255);
 void button_read();
 
@@ -21,7 +22,8 @@ void lidar();
 void moving_speed();
 void dribbler();
 void imu();
-void cam();
+void ball();
+void kicker();
 
 void battery_voltage_read();
 void serial_send();
@@ -34,16 +36,19 @@ bool is_button[3], pre_is_button[3];
 int16_t yaw;
 uint8_t tof_val[16];
 uint8_t min_tof_sensor;
-uint8_t wall_dir;
 int16_t safe_dir;
 uint8_t motor_rotation_num[4];
-uint8_t ball;
+int16_t ball_dir;
+uint8_t ball_dis;
+bool is_ball_catch_front;
+bool is_ball_catch_back;
 
 // send data
 bool yaw_correction = 0;
 uint8_t mode = 0;
 uint8_t moving_speed_1 = 50;
 uint8_t dribbler_sig = 0;
+bool kicker_sig = 0;
 
 bool is_voltage_decrease = 0;
 float battery_voltage;
@@ -57,15 +62,6 @@ void setup() {
 
       Serial.begin(19200);   // 通信速度: 9600, 14400, 19200, 28800, 38400, 57600, 115200
 
-      pixels.begin();
-      for (uint8_t i = 0; i < 16; i++) {
-            pixels.rainbow();
-            for (uint8_t j = 0; j < 15 - i; j++) {
-                  led(15 - j, 0, 0, 0);
-            }
-            pixels.show();
-            delay(50);
-      }
       delay(250);
       tone(buzzer_pin, 1500, 75);
       delay(250);
@@ -73,32 +69,15 @@ void setup() {
       delay(100);
       tone(buzzer_pin, 3000, 75);
       delay(250);
-      for (uint8_t i = 0; i < 16; i++) {
-            pixels.rainbow();
-            for (uint8_t j = 0; j < i + 1; j++) {
-                  led(j, 0, 0, 0);
-            }
-            pixels.show();
-            delay(50);
-      }
-
-      pixels.clear();
-      pixels.show();
 }
 
 void loop() {
       battery_voltage_read();
 
-      pixels.clear();
       oled.clearDisplay();
+      oled.setTextSize(2);
+      led.Clear();
       if (is_voltage_decrease == 1) {
-            for (int i = 0; i < 16; i++) {
-                  led(i, 100, 0, 0);
-            }
-            oled.clearDisplay();
-            print_center("Low", 2, 0);
-            print_center("Voltage", 2, 20);
-            print("Change to new battery", 0, 0, 50);
       } else {
             button_read();
             if (sub_item == 0) {
@@ -107,138 +86,61 @@ void loop() {
             }
 
             if (item == 0) {
-                  if (sub_item == 0) {
-                        print_center("Home", 2);
-                        print("Battery: ", 1);
-                        if (battery_voltage > 8) {
-                              print_continue("High");
-                        } else if (battery_voltage > 7) {
-                              print_continue("Medium");
-                        } else if (battery_voltage > 6) {
-                              print_continue("Low");
-                        } else {
-                              print_continue("None");
-                        }
-                        mode = 0;
-                  } else if (sub_item == 1) {
-                        if (mode == 0) {
-                              print_center("Offence", 2);
-                        } else {
-                              print_center("Running", 2);
-                        }
-                        if (set_val != 0) {
-                              mode = 1 - mode;
-                        }
-                  } else if (sub_item == 2) {
-                        if (mode == 0) {
-                              print_center("Defense", 2);
-                        } else {
-                              print_center("Running", 2);
-                        }
-                        if (set_val != 0) {
-                              mode = 2 - mode;
-                        }
-                  } else {
-                        sub_item = 0;
-                  }
                   home();
             } else if (item == 1) {
-                  if (sub_item == 0) {
-                        print_center("IMU", 2);
-                  } else if (sub_item == 1) {
-                        print_center(String(yaw), 5);
-
-                        for (int i = 0; i < 16; i++) {
-                              led((360 - (yaw - 11.25)) / 22.5, 0, 0, 200);
-                        }
-
-                        yaw_correction = 0;
-                        if (set_val != 0) {
-                              yaw_correction = 1;
-                        }
-                  } else {
-                        sub_item = 0;
-                  }
                   imu();
             } else if (item == 2) {
-                  if (sub_item == 0) {
-                        print_center("LiDAR", 2);
-                  } else if (sub_item == 1) {
-                        print_center("Running", 2);
-
-                        for (int i = 0; i < 16; i++) {
-                              led(i, 100 - tof_val[i] * 0.5, tof_val[i] * 0.5, 0);
-                        }
-                  } else if (sub_item == 2) {
-                        print_center("Safe", 2, 0);
-                        print_center(String(safe_dir), 2);
-
-                        led((safe_dir - 11.25) / 22.5, 100, 0, 0);
-                  } else if (sub_item == 3) {
-                        print_center("Min sensor", 2, 0);
-                        print_center(String(min_tof_sensor), 2, 20);
-                        print_center(String(tof_val[min_tof_sensor]), 2, 40);
-
-                        led(min_tof_sensor, 100, 0, 0);
-                  } else if (sub_item == 4) {
-                        print_center("Wall", 2, 0);
-                        print_center(String(wall_dir), 2);
-
-                        led(wall_dir, 100, 0, 0);
-                  } else {
-                        sub_item = 0;
-                  }
                   lidar();
             } else if (item == -1) {
-                  if (sub_item == 0) {
-                        print_center("Speed", 2);
-                  } else if (sub_item == 1) {
-                        print_center("1", 2, 0);
-                        print_center(String(moving_speed_1), 2);
-                        moving_speed_1 += set_val * 5;
-                  } else {
-                        sub_item = 0;
-                  }
                   moving_speed();
             } else if (item == -2) {
-                  if (sub_item == 0) {
-                        print_center("Dribbler", 2);
-                        dribbler_sig = 0;
-                  } else if (sub_item == 1) {
-                        print_center("Front", 2);
-                        if (set_val == -1) {
-                              dribbler_sig = 1;
-                        } else if (set_val == 1) {
-                              dribbler_sig = 2;
-                        }
-                  } else if (sub_item == 2) {
-                        print_center("Back", 2);
-                        if (set_val == -1) {
-                              dribbler_sig = 3;
-                        } else if (set_val == 1) {
-                              dribbler_sig = 4;
-                        }
-                  } else {
-                        sub_item = 0;
-                  }
                   dribbler();
             } else if (item == 3) {
-                  if (sub_item == 0) {
-                        print_center("Cam", 2);
-                  } else if (sub_item == 1) {
-                        print_center(String(ball), 2);
-                  } else {
-                        sub_item = 0;
-                  }
-                  cam();
+                  ball();
+            } else if (item == 4) {
+                  kicker();
             }
             serial_send();
       }
       oled.display();
-      pixels.show();
+      led.Show();
 }
 
 void home() {
+      if (sub_item == 0) {
+            oled.setCursor(CenterX(2, 64, 4), CenterY(2, 32));
+            oled.print("Home");
+
+            oled.setCursor(0, 0);
+            oled.setTextSize(1);
+            oled.print("Battery: ");
+            oled.print(battery_voltage);
+            oled.print("v");
+            mode = 0;
+      } else if (sub_item == 1) {
+            oled.setCursor(CenterX(2, 64, 7), CenterY(2, 32));
+            if (mode == 0) {
+                  oled.print("Offence");
+            } else {
+                  oled.print("Running");
+            }
+            if (set_val != 0) {
+                  mode = 1 - mode;
+            }
+      } else if (sub_item == 2) {
+            oled.setCursor(CenterX(2, 64, 7), CenterY(2, 32));
+            if (mode == 0) {
+                  oled.print("Defense");
+            } else {
+                  oled.print("Running");
+            }
+            if (set_val != 0) {
+                  mode = 2 - mode;
+            }
+      } else {
+            sub_item = 0;
+      }
+
       if (Serial.available() > 0) {
             battery_voltage = Serial.read() / 10.0;
             while (Serial.available() > 0) {
@@ -248,6 +150,26 @@ void home() {
 }
 
 void imu() {
+      if (sub_item == 0) {
+            oled.setCursor(CenterX(2, 64, 3), CenterY(2, 32));
+            oled.print("IMU");
+      } else if (sub_item == 1) {
+            oled.setTextSize(5);
+            oled.setCursor(CenterX(5, 64, String(yaw).length()), CenterY(5, 32));
+            oled.print(yaw);
+
+            for (int i = 0; i < 16; i++) {
+                  led.SetColor((360 - (yaw - 11.25)) / 22.5, 0, 0, 200);
+            }
+
+            yaw_correction = 0;
+            if (set_val != 0) {
+                  yaw_correction = 1;
+            }
+      } else {
+            sub_item = 0;
+      }
+
       if (Serial.available() > 0) {
             if (Serial.read() == 0xFF) {
                   uint8_t yaw_plus = Serial.read();
@@ -263,12 +185,41 @@ void imu() {
 }
 
 void lidar() {
+      if (sub_item == 0) {
+            oled.setCursor(CenterX(2, 64, 5), CenterY(2, 32));
+            oled.print("LiDAR");
+      } else if (sub_item == 1) {
+            oled.setCursor(CenterX(2, 64, 7), CenterY(2, 32));
+            oled.print("Running");
+
+            for (int i = 0; i < 16; i++) {
+                  led.SetColor(i, 100 - tof_val[i] * 0.5, tof_val[i] * 0.5, 0);
+            }
+      } else if (sub_item == 2) {
+            oled.setCursor(CenterX(2, 64, 8), CenterY(2, 12));
+            oled.print("Safe dir");
+            oled.setCursor(CenterX(2, 64, String(safe_dir).length()), CenterY(2, 32));
+            oled.print(safe_dir);
+
+            led.SetColor((safe_dir - 11.25) / 22.5, 100, 0, 0);
+      } else if (sub_item == 3) {
+            oled.setCursor(CenterX(2, 64, 10), CenterY(2, 12));
+            oled.print("Min sensor");
+            oled.setCursor(CenterX(2, 64, String(min_tof_sensor).length()), CenterY(2, 32));
+            oled.print(min_tof_sensor);
+            oled.setCursor(CenterX(2, 64, String(tof_val[min_tof_sensor]).length()), CenterY(2, 52));
+            oled.print(tof_val[min_tof_sensor]);
+
+            led.SetColor(min_tof_sensor, 100, 0, 0);
+      } else {
+            sub_item = 0;
+      }
+
       if (Serial.available() > 0) {
             if (Serial.read() == 0xFF) {
                   uint8_t safe_dir_plus = Serial.read();
                   uint8_t safe_dir_minus = Serial.read();
                   min_tof_sensor = Serial.read();
-                  wall_dir = Serial.read();
                   for (int i = 0; i < 16; i++) {
                         tof_val[i] = Serial.read();
                   }
@@ -283,17 +234,107 @@ void lidar() {
 }
 
 void moving_speed() {
+      if (sub_item == 0) {
+            oled.setCursor(CenterX(2, 64, 5), CenterY(2, 32));
+            oled.print("Speed");
+      } else if (sub_item == 1) {
+            oled.setCursor(CenterX(2, 64, String(moving_speed_1).length()), CenterY(2, 32));
+            oled.print(moving_speed_1);
+            moving_speed_1 += set_val * 5;
+      } else {
+            sub_item = 0;
+      }
 }
 
 void dribbler() {
+      if (sub_item == 0) {
+            oled.setCursor(CenterX(2, 64, 8), CenterY(2, 32));
+            oled.print("Dribbler");
+            dribbler_sig = 0;
+      } else if (sub_item == 1) {
+            oled.setCursor(CenterX(2, 64, 5), CenterY(2, 32));
+            oled.print("Front");
+            if (set_val == -1) {
+                  dribbler_sig = 1;
+            } else if (set_val == 1) {
+                  dribbler_sig = 2;
+            }
+      } else if (sub_item == 2) {
+            oled.setCursor(CenterX(2, 64, 4), CenterY(2, 32));
+            oled.print("Back");
+            if (set_val == -1) {
+                  dribbler_sig = 3;
+            } else if (set_val == 1) {
+                  dribbler_sig = 4;
+            }
+      } else {
+            sub_item = 0;
+      }
 }
 
-void cam() {
-      if (Serial.available() > 0) {
-            ball = Serial.read();
-            while (Serial.available() > 0) {
-                  Serial.read();
+void ball() {
+      if (sub_item == 0) {
+            oled.setCursor(CenterX(2, 64, 3), CenterY(2, 32));
+            oled.print("Ball");
+      } else if (sub_item == 1) {
+            oled.setCursor(0, 0);
+            oled.setTextSize(1);
+            oled.println("Dir");
+            oled.setTextSize(2);
+            oled.println(ball_dir);
+            oled.setTextSize(1);
+            oled.println("Dis");
+            oled.setTextSize(2);
+            oled.println(ball_dis);
+
+            oled.fillCircle(96 + ((200 - ball_dis) / 8 + 3) * cos((ball_dir - 90) * PI / 180.000), 32 + ((200 - ball_dis) / 8 + 3) * sin((ball_dir - 90) * PI / 180.000), 2, WHITE);
+            oled.drawCircle(96, 32, 28, WHITE);
+            oled.drawCircle(96, 32, 14, WHITE);
+            oled.fillCircle(96, 32, 2, WHITE);
+            oled.drawFastHLine(64, 32, 64, WHITE);
+            oled.drawFastVLine(96, 0, 64, WHITE);
+
+            led.SetColor((ball_dir - 11.25) / 22.5, 100, 0, 0);
+            if (is_ball_catch_front == 1) {
+                  led.SetColor(0, 0, 0, 100);
             }
+            if (is_ball_catch_back == 1) {
+                  led.SetColor(8, 0, 0, 100);
+            }
+      } else {
+            sub_item = 0;
+      }
+
+      if (Serial.available() > 0) {
+            if (Serial.read() == 0xFF) {
+                  uint8_t ball_dir_plus = Serial.read();
+                  uint8_t ball_dir_minus = Serial.read();
+                  ball_dis = Serial.read();
+                  is_ball_catch_front = Serial.read();
+                  is_ball_catch_back = Serial.read();
+
+                  ball_dir = SimplifyDeg(ball_dir_plus == 0 ? ball_dir_minus * -1 : ball_dir_plus);
+                  while (Serial.available() > 0) {
+                        Serial.read();
+                  }
+            }
+      }
+}
+
+void kicker() {
+      if (sub_item == 0) {
+            oled.setCursor(CenterX(2, 64, 6), CenterY(2, 32));
+            oled.print("Kicker");
+            kicker_sig = 0;
+      } else if (sub_item == 1) {
+            static uint8_t n = 0;
+            if (n < 2) {
+                  n++;
+            } else {
+                  n = 0;
+                  sub_item = 0;
+            }
+            kicker_sig = 1;
       }
 }
 
@@ -304,8 +345,8 @@ void serial_send() {
       Serial.write(yaw_correction);
       Serial.write(moving_speed_1);
       Serial.write(dribbler_sig);
+      Serial.write(kicker_sig);
       Serial.write(0xAA);
-      Serial.flush();
 }
 
 void battery_voltage_read() {
@@ -371,7 +412,7 @@ void button_read() {
             }
       }
 }
-
+/*
 void led_effect(uint8_t led_mode_) {
       if (led_mode_ == 0) {
             pixels.clear();
@@ -399,18 +440,7 @@ void led_effect(uint8_t led_mode_) {
                   delay(5);
             }
       }
-}
-
-void led(int8_t led_num_, uint8_t red_, uint8_t green_, uint8_t blue_) {
-      int8_t led_num_tmp = 20 - led_num_;
-      if (led_num_tmp > 15) {
-            led_num_tmp -= 16;
-      }
-      if (led_num_tmp < 0) {
-            led_num_tmp += 16;
-      }
-      pixels.setPixelColor(led_num_tmp, pixels.Color(red_, green_, blue_));
-}
+}*/
 
 void print_center(String str_, uint8_t size_, uint8_t y_) {
       uint8_t x_center = 65 - str_.length() * 3 * size_;
@@ -422,15 +452,5 @@ void print_center(String str_, uint8_t size_, uint8_t y_) {
       } else {
             oled.setCursor(x_center, y_center);
       }
-      oled.print(str_.c_str());
-}
-
-void print(String str_, uint8_t size_, uint8_t x_, uint8_t y_) {
-      oled.setTextSize(size_);
-      oled.setCursor(x_, y_);
-      oled.print(str_.c_str());
-}
-
-void print_continue(String str_) {
       oled.print(str_.c_str());
 }

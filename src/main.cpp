@@ -1,6 +1,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_SSD1306.h>
 #include <Arduino.h>
+
 #include "neopixel.h"
 #include "simplify_deg.h"
 
@@ -8,13 +9,12 @@
 #define CenterY(_size, _y) (_y - (7 / 2 * _size))
 
 const uint8_t led_pin = 2;
-const uint8_t buzzer_pin = 9;
+const uint8_t buzzer_pin = 8;
 const uint8_t button_pin[3] = {6, 7, 5};   // center, left, right
 
 Adafruit_SSD1306 oled(128, 64, &Wire, -1);
 NeoPixel led;
 
-void print_center(String str_, uint8_t size_, uint8_t y_ = 255);
 void button_read();
 
 void home();
@@ -57,7 +57,9 @@ void setup() {
       oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);
       oled.setTextColor(SSD1306_WHITE);
       oled.clearDisplay();
-      print_center("setting", 2);
+      oled.setTextSize(2);
+      oled.setCursor(CenterX(2, 64, 7), CenterY(2, 32));
+      oled.print("setting");
       oled.display();
 
       Serial.begin(19200);   // 通信速度: 9600, 14400, 19200, 28800, 38400, 57600, 115200
@@ -274,7 +276,7 @@ void dribbler() {
 
 void ball() {
       if (sub_item == 0) {
-            oled.setCursor(CenterX(2, 64, 3), CenterY(2, 32));
+            oled.setCursor(CenterX(2, 64, 4), CenterY(2, 32));
             oled.print("Ball");
       } else if (sub_item == 1) {
             oled.setCursor(0, 0);
@@ -441,16 +443,3 @@ void led_effect(uint8_t led_mode_) {
             }
       }
 }*/
-
-void print_center(String str_, uint8_t size_, uint8_t y_) {
-      uint8_t x_center = 65 - str_.length() * 3 * size_;
-      uint8_t y_center = 32 - size_ * 3;
-
-      oled.setTextSize(size_);
-      if (y_ != 255) {
-            oled.setCursor(x_center, y_);
-      } else {
-            oled.setCursor(x_center, y_center);
-      }
-      oled.print(str_.c_str());
-}

@@ -23,7 +23,7 @@ void moving_speed();
 void dribbler();
 void imu();
 void ball();
-void kicker();
+void goal();
 
 void battery_voltage_read();
 void serial_send();
@@ -40,20 +40,25 @@ int16_t safe_dir;
 uint8_t motor_rotation_num[4];
 int16_t ball_dir;
 uint8_t ball_dis;
+int16_t y_goal_dir;
+uint8_t y_goal_size;
+int16_t b_goal_dir;
+uint8_t b_goal_size;
 bool is_ball_catch_front;
 bool is_ball_catch_back;
 
 // send data
 bool yaw_correction = 0;
+bool is_y_goal_front = 0;
 uint8_t mode = 0;
 uint8_t moving_speed_1 = 50;
 uint8_t dribbler_sig = 0;
-bool kicker_sig = 0;
 
 bool is_voltage_decrease = 0;
 float battery_voltage;
 
 void setup() {
+      delay(250);
       oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);
       oled.setTextColor(SSD1306_WHITE);
       oled.clearDisplay();
@@ -84,7 +89,7 @@ void loop() {
             button_read();
             if (sub_item == 0) {
                   if (item > -2) oled.fillTriangle(10, 53, 0, 58, 10, 63, WHITE);
-                  if (item < 2) oled.fillTriangle(117, 53, 128, 58, 117, 63, WHITE);
+                  if (item < 4) oled.fillTriangle(117, 53, 128, 58, 117, 63, WHITE);
             }
 
             if (item == 0) {
@@ -100,7 +105,7 @@ void loop() {
             } else if (item == 3) {
                   ball();
             } else if (item == 4) {
-                  kicker();
+                  goal();
             }
             serial_send();
       }
@@ -160,16 +165,16 @@ void imu() {
             oled.setCursor(CenterX(5, 64, String(yaw).length()), CenterY(5, 32));
             oled.print(yaw);
 
-            for (int i = 0; i < 16; i++) {
-                  led.SetColor((360 - (yaw - 11.25)) / 22.5, 0, 0, 200);
-            }
-
             yaw_correction = 0;
             if (set_val != 0) {
                   yaw_correction = 1;
             }
       } else {
             sub_item = 0;
+      }
+
+      for (int i = 0; i < 16; i++) {
+            led.SetColor((360 - (yaw - 11.25)) / 22.5, 0, 0, 200);
       }
 
       if (Serial.available() > 0) {
@@ -190,21 +195,18 @@ void lidar() {
       if (sub_item == 0) {
             oled.setCursor(CenterX(2, 64, 5), CenterY(2, 32));
             oled.print("LiDAR");
-      } else if (sub_item == 1) {
-            oled.setCursor(CenterX(2, 64, 7), CenterY(2, 32));
-            oled.print("Running");
 
             for (int i = 0; i < 16; i++) {
                   led.SetColor(i, 100 - tof_val[i] * 0.5, tof_val[i] * 0.5, 0);
             }
-      } else if (sub_item == 2) {
+      } else if (sub_item == 1) {
             oled.setCursor(CenterX(2, 64, 8), CenterY(2, 12));
             oled.print("Safe dir");
             oled.setCursor(CenterX(2, 64, String(safe_dir).length()), CenterY(2, 32));
             oled.print(safe_dir);
 
             led.SetColor((safe_dir - 11.25) / 22.5, 100, 0, 0);
-      } else if (sub_item == 3) {
+      } else if (sub_item == 2) {
             oled.setCursor(CenterX(2, 64, 10), CenterY(2, 12));
             oled.print("Min sensor");
             oled.setCursor(CenterX(2, 64, String(min_tof_sensor).length()), CenterY(2, 32));
@@ -256,6 +258,7 @@ void dribbler() {
       } else if (sub_item == 1) {
             oled.setCursor(CenterX(2, 64, 5), CenterY(2, 32));
             oled.print("Front");
+            if (dribbler_sig == 2) dribbler_sig = 0;
             if (set_val == -1) {
                   dribbler_sig = 1;
             } else if (set_val == 1) {
@@ -295,16 +298,16 @@ void ball() {
             oled.fillCircle(96, 32, 2, WHITE);
             oled.drawFastHLine(64, 32, 64, WHITE);
             oled.drawFastVLine(96, 0, 64, WHITE);
-
-            led.SetColor((ball_dir - 11.25) / 22.5, 100, 0, 0);
-            if (is_ball_catch_front == 1) {
-                  led.SetColor(0, 0, 0, 100);
-            }
-            if (is_ball_catch_back == 1) {
-                  led.SetColor(8, 0, 0, 100);
-            }
       } else {
             sub_item = 0;
+      }
+
+      led.SetColor((ball_dir - 11.25) / 22.5, 100, 0, 0);
+      if (is_ball_catch_front == 1) {
+            led.SetColor(0, 0, 0, 100);
+      }
+      if (is_ball_catch_back == 1) {
+            led.SetColor(8, 0, 0, 100);
       }
 
       if (Serial.available() > 0) {
@@ -323,20 +326,67 @@ void ball() {
       }
 }
 
-void kicker() {
+void goal() {
       if (sub_item == 0) {
-            oled.setCursor(CenterX(2, 64, 6), CenterY(2, 32));
-            oled.print("Kicker");
-            kicker_sig = 0;
+            oled.setCursor(CenterX(2, 64, 4), CenterY(2, 32));
+            oled.print("Goal");
+
+            led.SetColor((y_goal_dir - 11.25) / 22.5, 100, 100, 0);
+            led.SetColor((b_goal_dir - 11.25) / 22.5, 0, 0, 100);
       } else if (sub_item == 1) {
-            static uint8_t n = 0;
-            if (n < 2) {
-                  n++;
+            if (set_val != 0) is_y_goal_front = 1 - is_y_goal_front;
+            if (is_y_goal_front == 1) {
+                  oled.setTextSize(1);
+                  oled.setCursor(CenterX(1, 64, 3), CenterY(1, 10));
+                  oled.println("Dir");
+                  oled.setTextSize(2);
+                  oled.setCursor(CenterX(2, 64, String(y_goal_dir).length()), CenterY(2, 25));
+                  oled.println(y_goal_dir);
+                  oled.setTextSize(1);
+                  oled.setCursor(CenterX(1, 64, 3), CenterY(1, 40));
+                  oled.println("Dis");
+                  oled.setTextSize(2);
+                  oled.setCursor(CenterX(2, 64, String(y_goal_size).length()), CenterY(2, 55));
+                  oled.println(y_goal_size);
+
+                  led.SetColor(0, 100, 100, 0);
+                  led.SetColor(8, 0, 0, 100);
             } else {
-                  n = 0;
-                  sub_item = 0;
+                  oled.setTextSize(1);
+                  oled.setCursor(CenterX(1, 64, 3), CenterY(1, 10));
+                  oled.println("Dir");
+                  oled.setTextSize(2);
+                  oled.setCursor(CenterX(2, 64, String(b_goal_dir).length()), CenterY(2, 25));
+                  oled.println(b_goal_dir);
+                  oled.setTextSize(1);
+                  oled.setCursor(CenterX(1, 64, 3), CenterY(1, 40));
+                  oled.println("Dis");
+                  oled.setTextSize(2);
+                  oled.setCursor(CenterX(2, 64, String(b_goal_size).length()), CenterY(2, 55));
+                  oled.println(b_goal_size);
+
+                  led.SetColor(0, 0, 0, 100);
+                  led.SetColor(8, 100, 100, 0);
             }
-            kicker_sig = 1;
+      } else {
+            sub_item = 0;
+      }
+
+      if (Serial.available() > 0) {
+            if (Serial.read() == 0xFF) {
+                  uint8_t y_goal_dir_plus = Serial.read();
+                  uint8_t y_goal_dir_minus = Serial.read();
+                  y_goal_size = Serial.read();
+                  uint8_t b_goal_dir_plus = Serial.read();
+                  uint8_t b_goal_dir_minus = Serial.read();
+                  b_goal_size = Serial.read();
+
+                  y_goal_dir = SimplifyDeg(y_goal_dir_plus == 0 ? y_goal_dir_minus * -1 : y_goal_dir_plus);
+                  b_goal_dir = SimplifyDeg(b_goal_dir_plus == 0 ? b_goal_dir_minus * -1 : b_goal_dir_plus);
+                  while (Serial.available() > 0) {
+                        Serial.read();
+                  }
+            }
       }
 }
 
@@ -347,7 +397,6 @@ void serial_send() {
       Serial.write(yaw_correction);
       Serial.write(moving_speed_1);
       Serial.write(dribbler_sig);
-      Serial.write(kicker_sig);
       Serial.write(0xAA);
 }
 
@@ -414,32 +463,3 @@ void button_read() {
             }
       }
 }
-/*
-void led_effect(uint8_t led_mode_) {
-      if (led_mode_ == 0) {
-            pixels.clear();
-            pixels.show();
-      } else if (led_mode_ == 1) {
-            for (uint8_t i = 0; i < 16; i++) {
-                  pixels.setPixelColor(i, pixels.Color(50, 0, 0));
-                  pixels.show();
-                  delay(50);
-            }
-            for (uint8_t i = 0; i < 16; i++) {
-                  pixels.setPixelColor(i, pixels.Color(0, 50, 0));
-                  pixels.show();
-                  delay(50);
-            }
-            for (uint8_t i = 0; i < 16; i++) {
-                  pixels.setPixelColor(i, pixels.Color(0, 0, 50));
-                  pixels.show();
-                  delay(50);
-            }
-      } else if (led_mode_ == 2) {
-            for (long firstPixelHue = 0; firstPixelHue < 5 * 65536; firstPixelHue += 256) {
-                  pixels.rainbow(firstPixelHue);
-                  pixels.show();
-                  delay(5);
-            }
-      }
-}*/

@@ -46,6 +46,7 @@ int16_t b_goal_dir;
 uint8_t b_goal_size;
 bool is_ball_catch_front;
 bool is_ball_catch_back;
+int16_t debug_val[4];
 
 // send data
 bool yaw_correction = 0;
@@ -58,7 +59,6 @@ bool is_voltage_decrease = 0;
 float battery_voltage;
 
 void setup() {
-      delay(250);
       oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);
       oled.setTextColor(SSD1306_WHITE);
       oled.clearDisplay();
@@ -69,6 +69,11 @@ void setup() {
 
       Serial.begin(19200);   // 通信速度: 9600, 14400, 19200, 28800, 38400, 57600, 115200
 
+      for (uint8_t i = 0; i < 16; i++) {
+            led.SetColor(i, 0, 100, 0);
+      }
+      led.Show();
+
       delay(250);
       tone(buzzer_pin, 1500, 75);
       delay(250);
@@ -76,6 +81,7 @@ void setup() {
       delay(100);
       tone(buzzer_pin, 3000, 75);
       delay(250);
+      led.Clear();
 }
 
 void loop() {
@@ -129,7 +135,12 @@ void home() {
             if (mode == 0) {
                   oled.print("Offence");
             } else {
-                  oled.print("Running");
+                  // oled.print("Running");
+                  oled.setCursor(0, 0);
+                  oled.println(debug_val[0]);
+                  oled.println(debug_val[1]);
+                  oled.println(debug_val[2]);
+                  oled.println(debug_val[3]);
             }
             if (set_val != 0) {
                   mode = 1 - mode;
@@ -139,7 +150,12 @@ void home() {
             if (mode == 0) {
                   oled.print("Defense");
             } else {
-                  oled.print("Running");
+                  // oled.print("Running");
+                  oled.setCursor(0, 0);
+                  oled.println(debug_val[0]);
+                  oled.println(debug_val[1]);
+                  oled.println(debug_val[2]);
+                  oled.println(debug_val[3]);
             }
             if (set_val != 0) {
                   mode = 2 - mode;
@@ -149,7 +165,18 @@ void home() {
       }
 
       if (Serial.available() > 0) {
+            uint8_t debug_val_plus[4];
+            uint8_t debug_val_minus[4];
+
             battery_voltage = Serial.read() / 10.0;
+            for (int i = 0; i < 4; i++) {
+                  debug_val_plus[i] = Serial.read();
+                  debug_val_minus[i] = Serial.read();
+            }
+
+            for (int i = 0; i < 4; i++) {
+                  debug_val[i] = SimplifyDeg(debug_val_plus[i] == 0 ? debug_val_minus[i] * -1 : debug_val_plus[i]);
+            }
             while (Serial.available() > 0) {
                   Serial.read();
             }
@@ -182,8 +209,7 @@ void imu() {
                   uint8_t yaw_plus = Serial.read();
                   uint8_t yaw_minus = Serial.read();
 
-                  yaw = yaw_plus == 0 ? yaw_minus * -1 : yaw_plus;
-                  yaw -= yaw > 180 ? 360 : (yaw < -180 ? -360 : 0);
+                  yaw = SimplifyDeg(yaw_plus == 0 ? yaw_minus * -1 : yaw_plus);
             }
             while (Serial.available() > 0) {
                   Serial.read();
@@ -336,35 +362,9 @@ void goal() {
       } else if (sub_item == 1) {
             if (set_val != 0) is_y_goal_front = 1 - is_y_goal_front;
             if (is_y_goal_front == 1) {
-                  oled.setTextSize(1);
-                  oled.setCursor(CenterX(1, 64, 3), CenterY(1, 10));
-                  oled.println("Dir");
-                  oled.setTextSize(2);
-                  oled.setCursor(CenterX(2, 64, String(y_goal_dir).length()), CenterY(2, 25));
-                  oled.println(y_goal_dir);
-                  oled.setTextSize(1);
-                  oled.setCursor(CenterX(1, 64, 3), CenterY(1, 40));
-                  oled.println("Dis");
-                  oled.setTextSize(2);
-                  oled.setCursor(CenterX(2, 64, String(y_goal_size).length()), CenterY(2, 55));
-                  oled.println(y_goal_size);
-
                   led.SetColor(0, 100, 100, 0);
                   led.SetColor(8, 0, 0, 100);
             } else {
-                  oled.setTextSize(1);
-                  oled.setCursor(CenterX(1, 64, 3), CenterY(1, 10));
-                  oled.println("Dir");
-                  oled.setTextSize(2);
-                  oled.setCursor(CenterX(2, 64, String(b_goal_dir).length()), CenterY(2, 25));
-                  oled.println(b_goal_dir);
-                  oled.setTextSize(1);
-                  oled.setCursor(CenterX(1, 64, 3), CenterY(1, 40));
-                  oled.println("Dis");
-                  oled.setTextSize(2);
-                  oled.setCursor(CenterX(2, 64, String(b_goal_size).length()), CenterY(2, 55));
-                  oled.println(b_goal_size);
-
                   led.SetColor(0, 0, 0, 100);
                   led.SetColor(8, 100, 100, 0);
             }
@@ -397,6 +397,7 @@ void serial_send() {
       Serial.write(yaw_correction);
       Serial.write(moving_speed_1);
       Serial.write(dribbler_sig);
+      Serial.write(is_y_goal_front);
       Serial.write(0xAA);
 }
 

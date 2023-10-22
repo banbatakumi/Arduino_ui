@@ -1,25 +1,25 @@
 #include <Adafruit_NeoPixel.h>
-#include <Adafruit_SSD1306.h>
 #include <Arduino.h>
+#include <U8g2lib.h>
 
 #include "neopixel.h"
 #include "simplify_deg.h"
 
-#define CenterX(_size, _x, _charnum) (_x - (((6 * (_charnum - 1) * _size) + (5 * _size)) / 2))
-#define CenterY(_size, _y) (_y - (7 / 2 * _size))
+#define CenterX(x_, charnum_) (x_ - ((charnum_ * 9) / 2))
+#define CenterY(y_) (y_ + 6)
 
 const uint8_t led_pin = 2;
 const uint8_t buzzer_pin = 8;
 const uint8_t button_pin[3] = {6, 7, 5};   // center, left, right
 
-Adafruit_SSD1306 oled(128, 64, &Wire, -1);
+U8G2_SSD1306_128X64_NONAME_1_HW_I2C oled(U8G2_R2, /* reset=*/U8X8_PIN_NONE);
 NeoPixel led;
 
 void button_read();
 
 void home();
 void lidar();
-void moving_speed();
+void speed();
 void dribbler();
 void imu();
 void ball();
@@ -52,22 +52,20 @@ int16_t debug_val[4];
 bool yaw_correction = 0;
 bool is_y_goal_front = 0;
 uint8_t mode = 0;
-uint8_t moving_speed_1 = 50;
+uint8_t moving_speed = 50;
+uint8_t line_moving_speed = 75;
 uint8_t dribbler_sig = 0;
 
 bool is_voltage_decrease = 0;
 float battery_voltage;
 
 void setup() {
-      oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);
-      oled.setTextColor(SSD1306_WHITE);
-      oled.clearDisplay();
-      oled.setTextSize(2);
-      oled.setCursor(CenterX(2, 64, 7), CenterY(2, 32));
-      oled.print("setting");
-      oled.display();
+      oled.begin();
+      oled.setPowerSave(0);
+      oled.setFlipMode(1);
+      oled.setFont(u8g2_font_courR10_tr);
 
-      Serial.begin(19200);   // 通信速度: 9600, 14400, 19200, 28800, 38400, 57600, 115200
+      Serial.begin(115200);   // 通信速度: 9600, 14400, 19200, 28800, 38400, 57600, 115200
 
       for (uint8_t i = 0; i < 16; i++) {
             led.SetColor(i, 0, 100, 0);
@@ -87,78 +85,110 @@ void setup() {
 void loop() {
       battery_voltage_read();
 
-      oled.clearDisplay();
-      oled.setTextSize(2);
-      led.Clear();
-      if (is_voltage_decrease == 1) {
-      } else {
-            button_read();
-            if (sub_item == 0) {
-                  if (item > -2) oled.fillTriangle(10, 53, 0, 58, 10, 63, WHITE);
-                  if (item < 4) oled.fillTriangle(117, 53, 128, 58, 117, 63, WHITE);
+      oled.firstPage();
+      do {
+            led.Clear();
+
+            if (is_voltage_decrease == 1) {
+            } else {
+                  button_read();
+                  if (sub_item == 0) {
+                        if (item > -2) oled.drawTriangle(10, 53, 0, 58, 10, 63);
+                        if (item < 4) oled.drawTriangle(117, 53, 128, 58, 117, 63);
+                  }
+
+                  if (item == 0) {
+                        home();
+                  } else if (item == 1) {
+                        imu();
+                  } else if (item == 2) {
+                        lidar();
+                  } else if (item == -1) {
+                        speed();
+                  } else if (item == -2) {
+                        dribbler();
+                  } else if (item == 3) {
+                        ball();
+                  } else if (item == 4) {
+                        goal();
+                  }
             }
 
-            if (item == 0) {
-                  home();
-            } else if (item == 1) {
-                  imu();
-            } else if (item == 2) {
-                  lidar();
-            } else if (item == -1) {
-                  moving_speed();
-            } else if (item == -2) {
-                  dribbler();
-            } else if (item == 3) {
-                  ball();
-            } else if (item == 4) {
-                  goal();
-            }
-            serial_send();
-      }
-      oled.display();
-      led.Show();
+            led.Show();
+      } while (oled.nextPage());
+
+      serial_send();
 }
 
 void home() {
       if (sub_item == 0) {
-            oled.setCursor(CenterX(2, 64, 4), CenterY(2, 32));
+            oled.setCursor(CenterX(64, 4), CenterY(32));
             oled.print("Home");
 
-            oled.setCursor(0, 0);
-            oled.setTextSize(1);
-            oled.print("Battery: ");
+            oled.setCursor(0, CenterY(5));
+            oled.print("Battery:");
             oled.print(battery_voltage);
             oled.print("v");
             mode = 0;
       } else if (sub_item == 1) {
-            oled.setCursor(CenterX(2, 64, 7), CenterY(2, 32));
             if (mode == 0) {
+                  oled.setCursor(CenterX(64, 7), CenterY(32));
                   oled.print("Offence");
-            } else {
-                  // oled.print("Running");
-                  oled.setCursor(0, 0);
-                  oled.println(debug_val[0]);
-                  oled.println(debug_val[1]);
-                  oled.println(debug_val[2]);
-                  oled.println(debug_val[3]);
             }
             if (set_val != 0) {
                   mode = 1 - mode;
             }
       } else if (sub_item == 2) {
-            oled.setCursor(CenterX(2, 64, 7), CenterY(2, 32));
             if (mode == 0) {
+                  oled.setCursor(CenterX(64, 7), CenterY(32));
                   oled.print("Defense");
-            } else {
-                  // oled.print("Running");
-                  oled.setCursor(0, 0);
-                  oled.println(debug_val[0]);
-                  oled.println(debug_val[1]);
-                  oled.println(debug_val[2]);
-                  oled.println(debug_val[3]);
             }
             if (set_val != 0) {
                   mode = 2 - mode;
+            }
+      } else if (sub_item == 3) {
+            if (mode == 0) {
+                  oled.setCursor(CenterX(64, 5), CenterY(32));
+                  oled.print("Debug");
+            } else {
+                  oled.setCursor(0, CenterY(14));
+                  oled.print("0: ");
+                  oled.print(debug_val[0]);
+                  oled.setCursor(0, CenterY(26));
+                  oled.print("1: ");
+                  oled.print(debug_val[1]);
+                  oled.setCursor(0, CenterY(38));
+                  oled.print("2: ");
+                  oled.print(debug_val[2]);
+                  oled.setCursor(0, CenterY(50));
+                  oled.print("3: ");
+                  oled.print(debug_val[3]);
+            }
+            if (set_val != 0) {
+                  mode = 3 - mode;
+            }
+      } else if (sub_item == 4) {
+            if (mode == 0) {
+                  oled.setCursor(CenterX(64, 8), CenterY(26));
+                  oled.print("Attitude");
+                  oled.setCursor(CenterX(64, 7), CenterY(38));
+                  oled.print("Control");
+            } else {
+                  oled.setCursor(0, CenterY(14));
+                  oled.print("0: ");
+                  oled.print(debug_val[0]);
+                  oled.setCursor(0, CenterY(26));
+                  oled.print("1: ");
+                  oled.print(debug_val[1]);
+                  oled.setCursor(0, CenterY(38));
+                  oled.print("2: ");
+                  oled.print(debug_val[2]);
+                  oled.setCursor(0, CenterY(50));
+                  oled.print("3: ");
+                  oled.print(debug_val[3]);
+            }
+            if (set_val != 0) {
+                  mode = 4 - mode;
             }
       } else {
             sub_item = 0;
@@ -185,12 +215,13 @@ void home() {
 
 void imu() {
       if (sub_item == 0) {
-            oled.setCursor(CenterX(2, 64, 3), CenterY(2, 32));
+            oled.setCursor(CenterX(64, 3), CenterY(32));
             oled.print("IMU");
       } else if (sub_item == 1) {
-            oled.setTextSize(5);
-            oled.setCursor(CenterX(5, 64, String(yaw).length()), CenterY(5, 32));
+            oled.setCursor(CenterX(64, String(yaw).length()), CenterY(32));
             oled.print(yaw);
+            oled.drawFilledEllipse(64 + 25 * cos((yaw - 90) * PI / 180.000), 32 + 25 * sin((yaw - 90) * PI / 180.000), 2, 2);
+            oled.drawEllipse(64, 32, 25, 25);
 
             yaw_correction = 0;
             if (set_val != 0) {
@@ -219,25 +250,25 @@ void imu() {
 
 void lidar() {
       if (sub_item == 0) {
-            oled.setCursor(CenterX(2, 64, 5), CenterY(2, 32));
+            oled.setCursor(CenterX(64, 5), CenterY(32));
             oled.print("LiDAR");
 
             for (int i = 0; i < 16; i++) {
                   led.SetColor(i, 100 - tof_val[i] * 0.5, tof_val[i] * 0.5, 0);
             }
       } else if (sub_item == 1) {
-            oled.setCursor(CenterX(2, 64, 8), CenterY(2, 12));
+            oled.setCursor(CenterX(64, 8), CenterY(12));
             oled.print("Safe dir");
-            oled.setCursor(CenterX(2, 64, String(safe_dir).length()), CenterY(2, 32));
+            oled.setCursor(CenterX(64, String(safe_dir).length()), CenterY(32));
             oled.print(safe_dir);
 
             led.SetColor((safe_dir - 11.25) / 22.5, 100, 0, 0);
       } else if (sub_item == 2) {
-            oled.setCursor(CenterX(2, 64, 10), CenterY(2, 12));
+            oled.setCursor(CenterX(64, 10), CenterY(12));
             oled.print("Min sensor");
-            oled.setCursor(CenterX(2, 64, String(min_tof_sensor).length()), CenterY(2, 32));
+            oled.setCursor(CenterX(64, String(min_tof_sensor).length()), CenterY(32));
             oled.print(min_tof_sensor);
-            oled.setCursor(CenterX(2, 64, String(tof_val[min_tof_sensor]).length()), CenterY(2, 52));
+            oled.setCursor(CenterX(64, String(tof_val[min_tof_sensor]).length()), CenterY(52));
             oled.print(tof_val[min_tof_sensor]);
 
             led.SetColor(min_tof_sensor, 100, 0, 0);
@@ -263,14 +294,22 @@ void lidar() {
       }
 }
 
-void moving_speed() {
+void speed() {
       if (sub_item == 0) {
-            oled.setCursor(CenterX(2, 64, 5), CenterY(2, 32));
+            oled.setCursor(CenterX(64, 5), CenterY(32));
             oled.print("Speed");
       } else if (sub_item == 1) {
-            oled.setCursor(CenterX(2, 64, String(moving_speed_1).length()), CenterY(2, 32));
-            oled.print(moving_speed_1);
-            moving_speed_1 += set_val * 5;
+            oled.setCursor(CenterX(64, 5), CenterY(16));
+            oled.print("Normal");
+            oled.setCursor(CenterX(64, String(moving_speed).length()), CenterY(32));
+            oled.print(moving_speed);
+            moving_speed += set_val * 5;
+      } else if (sub_item == 2) {
+            oled.setCursor(CenterX(64, 5), CenterY(16));
+            oled.print("Line");
+            oled.setCursor(CenterX(64, String(line_moving_speed).length()), CenterY(32));
+            oled.print(line_moving_speed);
+            line_moving_speed += set_val * 5;
       } else {
             sub_item = 0;
       }
@@ -278,20 +317,25 @@ void moving_speed() {
 
 void dribbler() {
       if (sub_item == 0) {
-            oled.setCursor(CenterX(2, 64, 8), CenterY(2, 32));
+            oled.setCursor(CenterX(64, 8), CenterY(32));
             oled.print("Dribbler");
             dribbler_sig = 0;
       } else if (sub_item == 1) {
-            oled.setCursor(CenterX(2, 64, 5), CenterY(2, 32));
+            static uint8_t cnt = 0;
+            oled.setCursor(CenterX(64, 5), CenterY(32));
             oled.print("Front");
-            if (dribbler_sig == 2) dribbler_sig = 0;
+            if (dribbler_sig == 2) cnt++;
+            if(cnt > 5){
+                  dribbler_sig = 0;
+                  cnt = 0;
+            }
             if (set_val == -1) {
                   dribbler_sig = 1;
             } else if (set_val == 1) {
                   dribbler_sig = 2;
             }
       } else if (sub_item == 2) {
-            oled.setCursor(CenterX(2, 64, 4), CenterY(2, 32));
+            oled.setCursor(CenterX(64, 4), CenterY(32));
             oled.print("Back");
             if (set_val == -1) {
                   dribbler_sig = 3;
@@ -305,25 +349,22 @@ void dribbler() {
 
 void ball() {
       if (sub_item == 0) {
-            oled.setCursor(CenterX(2, 64, 4), CenterY(2, 32));
+            oled.setCursor(CenterX(64, 4), CenterY(32));
             oled.print("Ball");
       } else if (sub_item == 1) {
-            oled.setCursor(0, 0);
-            oled.setTextSize(1);
-            oled.println("Dir");
-            oled.setTextSize(2);
-            oled.println(ball_dir);
-            oled.setTextSize(1);
-            oled.println("Dis");
-            oled.setTextSize(2);
-            oled.println(ball_dis);
+            oled.setCursor(0, CenterY(5));
+            oled.print("Dir:");
+            oled.print(ball_dir);
+            oled.setCursor(0, CenterY(20));
+            oled.print("Dis:");
+            oled.print(ball_dis);
 
-            oled.fillCircle(96 + ((200 - ball_dis) / 8 + 3) * cos((ball_dir - 90) * PI / 180.000), 32 + ((200 - ball_dis) / 8 + 3) * sin((ball_dir - 90) * PI / 180.000), 2, WHITE);
-            oled.drawCircle(96, 32, 28, WHITE);
-            oled.drawCircle(96, 32, 14, WHITE);
-            oled.fillCircle(96, 32, 2, WHITE);
-            oled.drawFastHLine(64, 32, 64, WHITE);
-            oled.drawFastVLine(96, 0, 64, WHITE);
+            oled.drawFilledEllipse(96 + ((200 - ball_dis) / 8 + 3) * cos((ball_dir - 90) * PI / 180.000), 32 + ((200 - ball_dis) / 8 + 3) * sin((ball_dir - 90) * PI / 180.000), 2, 2);
+            oled.drawEllipse(96, 32, 30, 30);
+            oled.drawEllipse(96, 32, 15, 15);
+            oled.drawFilledEllipse(96, 32, 2, 2);
+            oled.drawLine(64, 32, 128, 32);
+            oled.drawLine(96, 0, 96, 64);
       } else {
             sub_item = 0;
       }
@@ -354,7 +395,7 @@ void ball() {
 
 void goal() {
       if (sub_item == 0) {
-            oled.setCursor(CenterX(2, 64, 4), CenterY(2, 32));
+            oled.setCursor(CenterX(64, 4), CenterY(32));
             oled.print("Goal");
 
             led.SetColor((y_goal_dir - 11.25) / 22.5, 100, 100, 0);
@@ -362,11 +403,25 @@ void goal() {
       } else if (sub_item == 1) {
             if (set_val != 0) is_y_goal_front = 1 - is_y_goal_front;
             if (is_y_goal_front == 1) {
-                  led.SetColor(0, 100, 100, 0);
-                  led.SetColor(8, 0, 0, 100);
+                  oled.setCursor(CenterX(64, 6), CenterY(16));
+                  oled.print("Yellow");
+                  oled.setCursor(0, CenterY(32));
+                  oled.print("Dir:");
+                  oled.print(y_goal_dir);
+                  oled.setCursor(0, CenterY(48));
+                  oled.print("Size:");
+                  oled.print(y_goal_size);
+                  led.SetColor((y_goal_dir - 11.25) / 22.5, 100, 100, 0);
             } else {
-                  led.SetColor(0, 0, 0, 100);
-                  led.SetColor(8, 100, 100, 0);
+                  oled.setCursor(CenterX(64, 4), CenterY(16));
+                  oled.print("Blue");
+                  oled.setCursor(0, CenterY(32));
+                  oled.print("Dir:");
+                  oled.print(b_goal_dir);
+                  oled.setCursor(0, CenterY(48));
+                  oled.print("Size:");
+                  oled.print(b_goal_size);
+                  led.SetColor((b_goal_dir - 11.25) / 22.5, 0, 0, 100);
             }
       } else {
             sub_item = 0;
@@ -395,10 +450,12 @@ void serial_send() {
       Serial.write(item + 100);
       Serial.write(mode);
       Serial.write(yaw_correction);
-      Serial.write(moving_speed_1);
+      Serial.write(moving_speed);
+      Serial.write(line_moving_speed);
       Serial.write(dribbler_sig);
       Serial.write(is_y_goal_front);
       Serial.write(0xAA);
+      Serial.flush();
 }
 
 void battery_voltage_read() {
@@ -424,9 +481,11 @@ void button_read() {
                   if (sub_item == 0) {
                         tone(buzzer_pin, 1000, 50);
                         delay(50);
-                        tone(buzzer_pin, 1200, 50);
+                        tone(buzzer_pin, 1250, 50);
+                        delay(50);
                   } else {
-                        tone(buzzer_pin, 1500, 50);
+                        tone(buzzer_pin, 1250, 50);
+                        delay(50);
                   }
                   sub_item += 1;
             } else {

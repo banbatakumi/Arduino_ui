@@ -30,7 +30,6 @@ void battery_voltage_read();
 int8_t item = 0, sub_item = 0;
 int8_t set_val = 0;
 bool is_button[3], pre_is_button[3];
-uint8_t serial_write_cnt;
 
 // receive data
 int16_t yaw;
@@ -64,7 +63,7 @@ void setup() {
       oled.setFlipMode(1);
       oled.setFont(u8g2_font_courR10_tr);
 
-      Serial.begin(115200);   // 通信速度: 9600, 14400, 19200, 28800, 38400, 57600, 115200
+      Serial.begin(57600);   // 通信速度: 9600, 14400, 19200, 28800, 38400, 57600, 115200
 
       for (uint8_t i = 0; i < 16; i++) {
             led.SetColor(i, 255, 255, 255);
@@ -119,17 +118,15 @@ void loop() {   // 呼び出しのオーバーヘッド節減
             } while (oled.nextPage());
 
             // UART送信
-            if (mode == 0 || serial_write_cnt > 0) {   // デバッグモードもしくは調整中のみに送信
-                  Serial.write(0xFF);
-                  Serial.write(item + 100);
-                  Serial.write(mode);
-                  Serial.write(is_yaw_correction);
-                  Serial.write(moving_speed);
-                  Serial.write(line_moving_speed);
-                  Serial.write(dribbler_sig);
-                  Serial.write(0xAA);
-                  Serial.flush();
-            }
+            Serial.write(0xFF);
+            Serial.write(item + 100);
+            Serial.write(mode);
+            Serial.write(is_yaw_correction);
+            Serial.write(moving_speed);
+            Serial.write(line_moving_speed);
+            Serial.write(dribbler_sig);
+            Serial.write(0xAA);
+            Serial.flush();
       }
 }
 
@@ -151,9 +148,6 @@ void home() {
             if (mode == 0) {
                   oled.setCursor(CenterX(64, 7), CenterY(32));
                   oled.print("Offence");
-                  serial_write_cnt = 0;
-            } else {
-                  if (serial_write_cnt < 100) serial_write_cnt++;
             }
             if (set_val != 0) {
                   mode = 1 - mode;
@@ -162,9 +156,6 @@ void home() {
             if (mode == 0) {
                   oled.setCursor(CenterX(64, 7), CenterY(32));
                   oled.print("Defense");
-                  serial_write_cnt = 0;
-            } else {
-                  if (serial_write_cnt < 100) serial_write_cnt++;
             }
             if (set_val != 0) {
                   mode = 2 - mode;
@@ -173,9 +164,7 @@ void home() {
             if (mode == 0) {
                   oled.setCursor(CenterX(64, 5), CenterY(32));
                   oled.print("Debug");
-                  serial_write_cnt = 0;
             } else {
-                  if (serial_write_cnt < 100) serial_write_cnt++;
                   oled.setCursor(0, CenterY(14));
                   oled.print("0: ");
                   oled.print(debug_val[0]);
@@ -198,9 +187,7 @@ void home() {
                   oled.print("Attitude");
                   oled.setCursor(CenterX(64, 7), CenterY(38));
                   oled.print("Control");
-                  serial_write_cnt = 0;
             } else {
-                  if (serial_write_cnt < 100) serial_write_cnt++;
                   oled.setCursor(0, CenterY(14));
                   oled.print("0: ");
                   oled.print(debug_val[0]);
@@ -304,12 +291,43 @@ void lidar() {
       }
 
       if (Serial.available() > 0) {
-            if (Serial.read() == 0xFF) {
+            uint8_t head = Serial.read();
+            if (head == 0xEE) {
                   uint8_t safe_dir_plus = Serial.read();
                   uint8_t safe_dir_minus = Serial.read();
                   min_tof_sensor = Serial.read();
-                  for (int i = 0; i < 16; i++) {
-                        tof_val[i] = Serial.read();
+                  for (int i = 0; i < 4; i++) {
+                        tof_val[i * 4] = Serial.read();
+                  }
+
+                  safe_dir = safe_dir_plus == 0 ? safe_dir_minus * -1 : safe_dir_plus;
+                  safe_dir -= safe_dir > 180 ? 360 : (safe_dir < -180 ? -360 : 0);
+            }else if(head == 0xEF){
+                  uint8_t safe_dir_plus = Serial.read();
+                  uint8_t safe_dir_minus = Serial.read();
+                  min_tof_sensor = Serial.read();
+                  for (int i = 0; i < 4; i++) {
+                        tof_val[i * 4 + 1] = Serial.read();
+                  }
+
+                  safe_dir = safe_dir_plus == 0 ? safe_dir_minus * -1 : safe_dir_plus;
+                  safe_dir -= safe_dir > 180 ? 360 : (safe_dir < -180 ? -360 : 0);
+            } else if (head == 0xFE) {
+                  uint8_t safe_dir_plus = Serial.read();
+                  uint8_t safe_dir_minus = Serial.read();
+                  min_tof_sensor = Serial.read();
+                  for (int i = 0; i < 4; i++) {
+                        tof_val[i * 4 + 2] = Serial.read();
+                  }
+
+                  safe_dir = safe_dir_plus == 0 ? safe_dir_minus * -1 : safe_dir_plus;
+                  safe_dir -= safe_dir > 180 ? 360 : (safe_dir < -180 ? -360 : 0);
+            } else if (head == 0xFF) {
+                  uint8_t safe_dir_plus = Serial.read();
+                  uint8_t safe_dir_minus = Serial.read();
+                  min_tof_sensor = Serial.read();
+                  for (int i = 0; i < 4; i++) {
+                        tof_val[i * 4 + 3] = Serial.read();
                   }
 
                   safe_dir = safe_dir_plus == 0 ? safe_dir_minus * -1 : safe_dir_plus;
@@ -352,7 +370,7 @@ void dribbler() {
             oled.setCursor(CenterX(64, 5), CenterY(32));
             oled.print("Front");
             if (dribbler_sig == 2) cnt++;
-            if (cnt > 5) {
+            if (cnt > 10) {
                   dribbler_sig = 0;
                   cnt = 0;
             }

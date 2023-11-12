@@ -16,6 +16,7 @@ U8G2_SSD1306_128X64_NONAME_1_HW_I2C oled(U8G2_R2, /* reset=*/U8X8_PIN_NONE);
 NeoPixel led;
 
 const unsigned char minato_akua[] PROGMEM = {
+    // あくたんのビットマップ
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf7, 0xff, 0xff, 0x01, 0x3c, 0x08, 0x7e, 0xff, 0xff, 0xff,
     0xff, 0xff, 0xff, 0xff, 0xfe, 0xfe, 0xfb, 0x7f, 0xff, 0x93, 0x1d, 0x00, 0xef, 0x7d, 0xff, 0xff,
     0xff, 0xf7, 0xff, 0xff, 0xef, 0xdc, 0xfb, 0xfe, 0xff, 0x87, 0x06, 0x80, 0x9d, 0xfb, 0xff, 0xff,
@@ -103,8 +104,8 @@ uint8_t motor_rotation_num[4];
 // send data
 bool is_own_dir_correction;
 uint8_t mode = 0;
-uint8_t moving_speed = 75;
-uint8_t line_moving_speed = 75;
+uint8_t moving_speed = 80;
+uint8_t line_moving_speed = 50;
 uint8_t dribbler_sig = 0;
 
 bool is_voltage_decrease = 0;
@@ -115,23 +116,27 @@ void setup() {
       oled.setPowerSave(0);
       oled.setFlipMode(1);
       oled.setFont(u8g2_font_courR10_tr);
+      oled.firstPage();
+      do {
+            oled.drawXBMP(0, 0, 128, 64, minato_akua);
+      } while (oled.nextPage());
 
       Serial.begin(57600);   // 通信速度: 9600, 14400, 19200, 28800, 38400, 57600, 115200
 
-      for (uint8_t i = 0; i < 16; i++) {
+      for (uint8_t i = 0; i < 16 * 5; i++) {
+            led.Clear();
             led.SetColor(i, 255, 255, 255);
-            delay(50);
+            if (i % 16 == 0) tone(buzzer_pin, 2000, 25);
             led.Show();
+            delay(20);
       }
-
-      delay(250);
-      tone(buzzer_pin, 1500, 75);
-      delay(250);
-      tone(buzzer_pin, 2000, 75);
-      delay(100);
-      tone(buzzer_pin, 3000, 75);
-      delay(250);
       led.Clear();
+
+      delay(100);
+      tone(buzzer_pin, 2000, 100);
+      delay(100);
+      tone(buzzer_pin, 1000, 100);
+      delay(100);
 }
 
 void loop() {   // 呼び出しのオーバーヘッド節減
@@ -151,8 +156,7 @@ void loop() {   // 呼び出しのオーバーヘッド節減
                         }
 
                         if (item == 0) {
-                              // Home();
-                              oled.drawXBMP(0, 0, 128, 64, minato_akua);
+                              Home();
                         } else if (item == 1) {
                               Imu();
                         } else if (item == -1) {
@@ -191,33 +195,24 @@ void loop() {   // 呼び出しのオーバーヘッド節減
 
 void Home() {
       static int16_t debug_val[4];
-
-      static uint8_t data_length;   // データの長さ
-      const uint8_t recv_data_num = 9;
-      static uint8_t recv_data[recv_data_num];
-      uint8_t debug_val_plus[4];
-      uint8_t debug_val_minus[4];
-
-      if (data_length == 0) {   // ヘッダの受信
+      if (Serial.available() > 0) {
             if (Serial.read() == 0xFF) {
-                  data_length++;
-            } else {
-                  data_length = 0;
-            }
-      } else if (data_length == recv_data_num + 1) {
-            if (Serial.read() == 0xAA) {
-                  for (int i = 0; i < 4; i++) {
-                        debug_val_plus[i] = recv_data[i * 2];
-                        debug_val_minus[i] = recv_data[i * 2 + 1];
-                        debug_val[i] = debug_val_plus[i] == 0 ? debug_val_minus[i] * -1 : debug_val_plus[i];
-                  }
-                  battery_voltage = recv_data[8] / 10.0;
-            }
+                  uint8_t debug_val_plus[4];
+                  uint8_t debug_val_minus[4];
 
-            data_length = 0;
-      } else {
-            recv_data[data_length - 1] = Serial.read();
-            data_length++;
+                  battery_voltage = Serial.read() / 10.0;
+                  for (int i = 0; i < 4; i++) {
+                        debug_val_plus[i] = Serial.read();
+                        debug_val_minus[i] = Serial.read();
+                  }
+
+                  for (int i = 0; i < 4; i++) {
+                        debug_val[i] = SimplifyDeg(debug_val_plus[i] == 0 ? debug_val_minus[i] * -1 : debug_val_plus[i]);
+                  }
+                  while (Serial.available() > 0) {
+                        Serial.read();
+                  }
+            }
       }
 
       if (sub_item == 0) {
@@ -301,30 +296,16 @@ void Home() {
 void Imu() {
       static int16_t own_dir;
 
-      static uint8_t data_length;   // データの長さ
-      const uint8_t recv_data_num = 2;
-      static uint8_t recv_data[recv_data_num];
-      uint8_t own_dir_plus;
-      uint8_t own_dir_minus;
-
-      if (data_length == 0) {   // ヘッダの受信
+      if (Serial.available() > 0) {
             if (Serial.read() == 0xFF) {
-                  data_length++;
-            } else {
-                  data_length = 0;
-            }
-      } else if (data_length == recv_data_num + 1) {
-            if (Serial.read() == 0xAA) {
-                  own_dir_plus = recv_data[0];
-                  own_dir_minus = recv_data[1];
+                  uint8_t yaw_plus = Serial.read();
+                  uint8_t yaw_minus = Serial.read();
 
-                  own_dir = own_dir_plus == 0 ? own_dir_minus * -1 : own_dir_plus;
+                  own_dir = yaw_plus == 0 ? yaw_minus * -1 : yaw_plus;
             }
-
-            data_length = 0;
-      } else {
-            recv_data[data_length - 1] = Serial.read();
-            data_length++;
+            while (Serial.available() > 0) {
+                  Serial.read();
+            }
       }
 
       if (sub_item == 0) {
@@ -411,33 +392,19 @@ void Ball() {
       static bool is_ball_catch_front;
       static bool is_ball_catch_back;
 
-      static uint8_t data_length;   // データの長さ
-      const uint8_t recv_data_num = 5;
-      static uint8_t recv_data[recv_data_num];
-      uint8_t ball_dir_plus;
-      uint8_t ball_dir_minus;
-
-      if (data_length == 0) {   // ヘッダの受信
+      if (Serial.available() > 0) {
             if (Serial.read() == 0xFF) {
-                  data_length++;
-            } else {
-                  data_length = 0;
-            }
-      } else if (data_length == recv_data_num + 1) {
-            if (Serial.read() == 0xAA) {
-                  ball_dir_plus = recv_data[0];
-                  ball_dir_minus = recv_data[1];
-                  ball_dis = recv_data[2];
-                  is_ball_catch_front = recv_data[3];
-                  is_ball_catch_back = recv_data[4];
+                  uint8_t ball_dir_plus = Serial.read();
+                  uint8_t ball_dir_minus = Serial.read();
+                  ball_dis = Serial.read();
+                  is_ball_catch_front = Serial.read();
+                  is_ball_catch_back = Serial.read();
 
                   ball_dir = ball_dir_plus == 0 ? ball_dir_minus * -1 : ball_dir_plus;
+                  while (Serial.available() > 0) {
+                        Serial.read();
+                  }
             }
-
-            data_length = 0;
-      } else {
-            recv_data[data_length - 1] = Serial.read();
-            data_length++;
       }
 
       if (sub_item == 0) {
@@ -457,16 +424,12 @@ void Ball() {
             oled.drawFilledEllipse(96, 32, 2, 2);
             oled.drawLine(64, 32, 128, 32);
             oled.drawLine(96, 0, 96, 64);
+
+            led.SetColor(round(ball_dir / 22.5) % 16, 100, 0, 0);
+            if (is_ball_catch_front == 1) led.SetColor(0, 0, 0, 100);
+            if (is_ball_catch_back == 1) led.SetColor(8, 0, 0, 100);
       } else {
             sub_item = 0;
-      }
-
-      led.SetColor(round(ball_dir / 22.5) % 16, 100, 0, 0);
-      if (is_ball_catch_front == 1) {
-            led.SetColor(0, 0, 0, 100);
-      }
-      if (is_ball_catch_back == 1) {
-            led.SetColor(8, 0, 0, 100);
       }
 }
 
@@ -476,37 +439,21 @@ void Goal() {
       static int16_t b_goal_dir;
       static uint8_t b_goal_size;
 
-      static uint8_t data_length;   // データの長さ
-      const uint8_t recv_data_num = 6;
-      static uint8_t recv_data[recv_data_num];
-      uint8_t y_goal_dir_plus;
-      uint8_t y_goal_dir_minus;
-      uint8_t b_goal_dir_plus;
-      uint8_t b_goal_dir_minus;
-
-      if (data_length == 0) {   // ヘッダの受信
+      if (Serial.available() > 0) {
             if (Serial.read() == 0xFF) {
-                  data_length++;
-            } else {
-                  data_length = 0;
-            }
-      } else if (data_length == recv_data_num + 1) {
-            if (Serial.read() == 0xAA) {
-                  y_goal_dir_plus = recv_data[0];
-                  y_goal_dir_minus = recv_data[1];
-                  y_goal_size = recv_data[2];
-                  b_goal_dir_plus = recv_data[3];
-                  b_goal_dir_minus = recv_data[4];
-                  b_goal_size = recv_data[5];
+                  uint8_t y_goal_dir_plus = Serial.read();
+                  uint8_t y_goal_dir_minus = Serial.read();
+                  y_goal_size = Serial.read();
+                  uint8_t b_goal_dir_plus = Serial.read();
+                  uint8_t b_goal_dir_minus = Serial.read();
+                  b_goal_size = Serial.read();
 
                   y_goal_dir = y_goal_dir_plus == 0 ? y_goal_dir_minus * -1 : y_goal_dir_plus;
                   b_goal_dir = b_goal_dir_plus == 0 ? b_goal_dir_minus * -1 : b_goal_dir_plus;
+                  while (Serial.available() > 0) {
+                        Serial.read();
+                  }
             }
-
-            data_length = 0;
-      } else {
-            recv_data[data_length - 1] = Serial.read();
-            data_length++;
       }
 
       if (sub_item == 0) {
@@ -530,12 +477,12 @@ void Goal() {
             oled.setCursor(64, CenterY(48));
             oled.print("S:");
             oled.print(b_goal_size);
+
+            led.SetColor(round(y_goal_dir / 22.5) % 16, 100, 100, 0);
+            led.SetColor(round(b_goal_dir / 22.5) % 16, 0, 0, 100);
       } else {
             sub_item = 0;
       }
-
-      led.SetColor(round(y_goal_dir / 22.5) % 16, 100, 100, 0);
-      led.SetColor(round(b_goal_dir / 22.5) % 16, 0, 0, 100);
 }
 
 void Line() {
@@ -544,37 +491,21 @@ void Line() {
       static uint8_t line_interval;
       static uint8_t line_white_qty;
 
-      static uint8_t data_length;   // データの長さ
-      const uint8_t recv_data_num = 6;
-      static uint8_t recv_data[recv_data_num];
-      uint8_t line_dir_plus;
-      uint8_t line_dir_minus;
-      uint8_t line_inside_dir_plus;
-      uint8_t line_inside_dir_minus;
-
-      if (data_length == 0) {   // ヘッダの受信
+      if (Serial.available() > 0) {
             if (Serial.read() == 0xFF) {
-                  data_length++;
-            } else {
-                  data_length = 0;
-            }
-      } else if (data_length == recv_data_num + 1) {
-            if (Serial.read() == 0xAA) {
-                  line_dir_plus = recv_data[0];
-                  line_dir_minus = recv_data[1];
-                  line_inside_dir_plus = recv_data[2];
-                  line_inside_dir_minus = recv_data[3];
-                  line_interval = recv_data[4];
-                  line_white_qty = recv_data[5];
+                  uint8_t line_dir_plus = Serial.read();
+                  uint8_t line_dir_minus = Serial.read();
+                  uint8_t line_inside_dir_plus = Serial.read();
+                  uint8_t line_inside_dir_minus = Serial.read();
+                  line_interval = Serial.read();
+                  line_white_qty = Serial.read();
 
                   line_dir = line_dir_plus == 0 ? line_dir_minus * -1 : line_dir_plus;
                   line_inside_dir = line_inside_dir_plus == 0 ? line_inside_dir_minus * -1 : line_inside_dir_plus;
+                  while (Serial.available() > 0) {
+                        Serial.read();
+                  }
             }
-
-            data_length = 0;
-      } else {
-            recv_data[data_length - 1] = Serial.read();
-            data_length++;
       }
 
       if (sub_item == 0) {
@@ -593,11 +524,13 @@ void Line() {
             oled.setCursor(0, CenterY(50));
             oled.print("White QTY: ");
             oled.print(line_white_qty);
+
+            if (line_white_qty > 0) {
+                  led.SetColor(round(line_inside_dir / 22.5) % 16, 0, 100, 0);
+            }
       } else {
             sub_item = 0;
       }
-
-      led.SetColor(round(line_inside_dir / 22.5) % 16, 0, 100, 0);
 }
 
 void BatteryVoltageRead() {

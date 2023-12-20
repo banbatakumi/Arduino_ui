@@ -149,6 +149,10 @@ void Home() {
             oled.print("v");
             oled.drawLine(0, 20, 128, 20);
             mode = 0;
+
+            for (uint8_t i = 0; i < (battery_voltage - 6) * 4; i++) {
+                  led.SetColor(i, 1, 1, 1);
+            }
       } else if (sub_item == 1) {
             if (mode == 0) {
                   oled.setCursor(CenterX(64, 7), CenterY(32));
@@ -348,8 +352,7 @@ void Ball() {
             oled.setCursor(0, CenterY(20));
             oled.print("Dis:");
             oled.print(ball_dis);
-
-            oled.drawFilledEllipse(96 + ((200 - ball_dis) / 8 + 3) * cos((ball_dir - 90) * PI / 180.000), 32 + ((200 - ball_dis) / 8 + 3) * sin((ball_dir - 90) * PI / 180.000), 2, 2);
+            oled.drawFilledEllipse(96 + ((100 - ball_dis) / 3 + 3) * cos((ball_dir - 90) * PI / 180.000), 32 + ((100 - ball_dis) / 3 + 3) * sin((ball_dir - 90) * PI / 180.000), 2, 2);
             oled.drawEllipse(96, 32, 30, 30);
             oled.drawEllipse(96, 32, 15, 15);
             oled.drawFilledEllipse(96, 32, 2, 2);

@@ -11,6 +11,7 @@ class NeoPixel {
       void SetColor(int8_t led_num_, bool red_, bool green_, bool blue_);
       void Clear();
       void Show();
+      void Rainbow();
       void SetBrightness(uint8_t brightness_);
 
      private:

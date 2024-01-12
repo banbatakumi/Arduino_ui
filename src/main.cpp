@@ -29,9 +29,6 @@ int8_t item = 0, sub_item = 0;
 int8_t set_val = 0;
 bool is_button[3], pre_is_button[3];
 
-// receive data
-uint8_t motor_rotation_num[4];
-
 // send data
 bool is_own_dir_correction;
 uint8_t mode = 0;
@@ -51,15 +48,10 @@ void setup() {
       Serial.begin(9600);   // 通信速度: 9600, 14400, 19200, 28800, 38400, 57600, 115200
 
       led.SetBrightness(50);
-
-      for (uint8_t i = 0; i < 16 * 5; i++) {
-            led.Clear();
+      for (uint8_t i = 0; i < 16; i++) {
             led.SetColor(i, 1, 1, 1);
-            if (i % 16 == 0) tone(buzzer_pin, 2000, 25);
-            led.Show();
-            delay(20);
       }
-      led.Clear();
+      led.Show();
 
       delay(100);
       tone(buzzer_pin, 2000, 100);
@@ -121,21 +113,18 @@ void Home() {
       static int16_t debug_val[4];
       if (Serial.available() > 0) {
             if (Serial.read() == 0xFF) {
-                  uint8_t debug_val_plus[4];
-                  uint8_t debug_val_minus[4];
+                  uint8_t debug_val_plus;
+                  uint8_t debug_val_minus;
 
                   battery_voltage = Serial.read() / 20.00;
-                  for (int i = 0; i < 4; i++) {
-                        debug_val_plus[i] = Serial.read();
-                        debug_val_minus[i] = Serial.read();
-                  }
+                  debug_val_plus = Serial.read();
+                  debug_val_minus = Serial.read();
+                  debug_val[1] = Serial.read();
+                  debug_val[2] = Serial.read();
+                  debug_val[3] = Serial.read();
 
-                  for (int i = 0; i < 4; i++) {
-                        debug_val[i] = SimplifyDeg(debug_val_plus[i] == 0 ? debug_val_minus[i] * -1 : debug_val_plus[i]);
-                  }
-                  while (Serial.available() > 0) {
-                        Serial.read();
-                  }
+                  debug_val[0] = SimplifyDeg(debug_val_plus == 0 ? debug_val_minus * -1 : debug_val_plus);
+                  while (Serial.available() > 0) Serial.read();
             }
       }
 
@@ -150,25 +139,27 @@ void Home() {
             oled.drawLine(0, 20, 128, 20);
             mode = 0;
 
-            for (uint8_t i = 0; i < (battery_voltage - 6) * 4; i++) {
-                  led.SetColor(i, 1, 1, 1);
+            if (battery_voltage < 8) {
+                  for (uint8_t i = 0; i < 16; i++) {
+                        led.SetColor(i, 1, 0, 0);
+                  }
+            } else {
+                  for (uint8_t i = 0; i < (battery_voltage - 8) * 8; i++) {
+                        led.SetColor(i, 1, 1, 1);
+                  }
             }
       } else if (sub_item == 1) {
             if (mode == 0) {
                   oled.setCursor(CenterX(64, 7), CenterY(32));
                   oled.print("Offence");
             }
-            if (set_val != 0) {
-                  mode = 1 - mode;
-            }
+            if (set_val != 0) mode = 1 - mode;
       } else if (sub_item == 2) {
             if (mode == 0) {
                   oled.setCursor(CenterX(64, 7), CenterY(32));
                   oled.print("Defense");
             }
-            if (set_val != 0) {
-                  mode = 2 - mode;
-            }
+            if (set_val != 0) mode = 2 - mode;
       } else if (sub_item == 3) {
             if (mode == 0) {
                   oled.setCursor(CenterX(64, 5), CenterY(32));
@@ -187,9 +178,7 @@ void Home() {
                   oled.print("3: ");
                   oled.print(debug_val[3]);
             }
-            if (set_val != 0) {
-                  mode = 3 - mode;
-            }
+            if (set_val != 0) mode = 3 - mode;
       } else if (sub_item == 4) {
             if (mode == 0) {
                   oled.setCursor(CenterX(64, 8), CenterY(26));
@@ -210,9 +199,7 @@ void Home() {
                   oled.print("3: ");
                   oled.print(debug_val[3]);
             }
-            if (set_val != 0) {
-                  mode = 4 - mode;
-            }
+            if (set_val != 0) mode = 4 - mode;
       } else {
             sub_item = 0;
       }
@@ -228,9 +215,7 @@ void Imu() {
 
                   own_dir = yaw_plus == 0 ? yaw_minus * -1 : yaw_plus;
             }
-            while (Serial.available() > 0) {
-                  Serial.read();
-            }
+            while (Serial.available() > 0) Serial.read();
       }
 
       if (sub_item == 0) {
@@ -242,9 +227,7 @@ void Imu() {
 
             static uint8_t cnt = 0;
 
-            if (set_val != 0) {
-                  is_own_dir_correction = 1;
-            }
+            if (set_val != 0) is_own_dir_correction = 1;
 
             if (is_own_dir_correction == 1) cnt++;
             if (cnt > 10) {
@@ -319,6 +302,7 @@ void Dribbler() {
       } else {
             sub_item = 0;
       }
+      led.Rainbow();
 }
 
 void Ball() {
@@ -329,16 +313,14 @@ void Ball() {
 
       if (Serial.available() > 0) {
             if (Serial.read() == 0xFF) {
-                  uint8_t ball_dir_plus = Serial.read();
-                  uint8_t ball_dir_minus = Serial.read();
+                  uint8_t bool_data;
+                  ball_dir = Serial.read() * 2 - 180;
                   ball_dis = Serial.read();
-                  is_ball_catch_front = Serial.read();
-                  is_ball_catch_back = Serial.read();
+                  bool_data = Serial.read();
+                  is_ball_catch_front = (bool_data >> 1) & 1;
+                  is_ball_catch_back = bool_data & 1;
 
-                  ball_dir = ball_dir_plus == 0 ? ball_dir_minus * -1 : ball_dir_plus;
-                  while (Serial.available() > 0) {
-                        Serial.read();
-                  }
+                  while (Serial.available() > 0) Serial.read();
             }
       }
 
@@ -375,18 +357,12 @@ void Goal() {
 
       if (Serial.available() > 0) {
             if (Serial.read() == 0xFF) {
-                  uint8_t y_goal_dir_plus = Serial.read();
-                  uint8_t y_goal_dir_minus = Serial.read();
+                  y_goal_dir = Serial.read() * 2 - 180;
                   y_goal_size = Serial.read();
-                  uint8_t b_goal_dir_plus = Serial.read();
-                  uint8_t b_goal_dir_minus = Serial.read();
+                  b_goal_dir = Serial.read() * 2 - 180;
                   b_goal_size = Serial.read();
 
-                  y_goal_dir = y_goal_dir_plus == 0 ? y_goal_dir_minus * -1 : y_goal_dir_plus;
-                  b_goal_dir = b_goal_dir_plus == 0 ? b_goal_dir_minus * -1 : b_goal_dir_plus;
-                  while (Serial.available() > 0) {
-                        Serial.read();
-                  }
+                  while (Serial.available() > 0) Serial.read();
             }
       }
 
@@ -412,33 +388,33 @@ void Goal() {
             oled.print("S:");
             oled.print(b_goal_size);
 
-            led.SetColor(round(y_goal_dir / 22.5) % 16, 100, 100, 0);
-            led.SetColor(round(b_goal_dir / 22.5) % 16, 0, 0, 100);
       } else {
             sub_item = 0;
       }
+      led.SetColor(round(y_goal_dir / 22.5) % 16, 100, 100, 0);
+      led.SetColor(round(b_goal_dir / 22.5) % 16, 0, 0, 100);
 }
 
 void Line() {
       static int16_t line_dir;
       static int16_t line_inside_dir;
       static uint8_t line_interval;
-      static uint8_t line_white_qty;
+      static bool is_on_line;
+      static bool is_left_line;
+      static bool is_right_line;
 
       if (Serial.available() > 0) {
             if (Serial.read() == 0xFF) {
-                  uint8_t line_dir_plus = Serial.read();
-                  uint8_t line_dir_minus = Serial.read();
-                  uint8_t line_inside_dir_plus = Serial.read();
-                  uint8_t line_inside_dir_minus = Serial.read();
+                  uint8_t bool_data;
+                  line_dir = Serial.read() * 2 - 180;
+                  line_inside_dir = Serial.read() * 2 - 180;
                   line_interval = Serial.read();
-                  line_white_qty = Serial.read();
+                  bool_data = Serial.read();
+                  is_on_line = (bool_data >> 2) & 1;
+                  is_left_line = (bool_data >> 1) & 1;
+                  is_right_line = bool_data & 1;
 
-                  line_dir = line_dir_plus == 0 ? line_dir_minus * -1 : line_dir_plus;
-                  line_inside_dir = line_inside_dir_plus == 0 ? line_inside_dir_minus * -1 : line_inside_dir_plus;
-                  while (Serial.available() > 0) {
-                        Serial.read();
-                  }
+                  while (Serial.available() > 0) Serial.read();
             }
       }
 
@@ -446,25 +422,22 @@ void Line() {
             oled.setCursor(CenterX(64, 4), CenterY(32));
             oled.print("Line");
       } else if (sub_item == 1) {
-            oled.setCursor(0, CenterY(14));
+            oled.setCursor(0, CenterY(20));
             oled.print("Dir: ");
             oled.print(line_dir);
-            oled.setCursor(0, CenterY(26));
-            oled.print("Inside dir: ");
+            oled.setCursor(0, CenterY(32));
+            oled.print("Inside: ");
             oled.print(line_inside_dir);
-            oled.setCursor(0, CenterY(38));
+            oled.setCursor(0, CenterY(44));
             oled.print("Interval: ");
             oled.print(line_interval);
-            oled.setCursor(0, CenterY(50));
-            oled.print("White QTY: ");
-            oled.print(line_white_qty);
       } else {
             sub_item = 0;
       }
 
-      if (line_white_qty > 0) {
-            led.SetColor(round(line_inside_dir / 22.5) % 16, 0, 1, 0);
-      }
+      if (is_on_line == 1) led.SetColor(round(line_inside_dir / 22.5) % 16, 0, 1, 0);
+      if (is_left_line) led.SetColor(12, 0, 0, 1);
+      if (is_right_line) led.SetColor(4, 0, 0, 1);
 }
 
 void ButtonRead() {

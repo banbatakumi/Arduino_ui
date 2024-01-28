@@ -10,7 +10,7 @@
 
 const uint8_t led_pin = 2;
 const uint8_t buzzer_pin = 8;
-const uint8_t button_pin[3] = {6, 7, 5};   // center, left, right
+const uint8_t button_pin[3] = {6, 7, 5};  // center, left, right
 
 U8G2_SSD1306_128X64_NONAME_1_HW_I2C oled(U8G2_R2, /* reset=*/U8X8_PIN_NONE);
 NeoPixel led;
@@ -32,8 +32,8 @@ bool is_button[3], pre_is_button[3];
 // send data
 bool is_own_dir_correction;
 uint8_t mode = 0;
-uint8_t moving_speed = 80;
-uint8_t line_moving_speed = 80;
+uint8_t moving_speed = 75;
+uint8_t line_moving_speed = 75;
 uint8_t dribbler_sig = 0;
 
 float battery_voltage;
@@ -45,13 +45,17 @@ void setup() {
       oled.setFont(u8g2_font_courR10_tr);
       oled.firstPage();
 
-      Serial.begin(9600);   // 通信速度: 9600, 14400, 19200, 28800, 38400, 57600, 115200
+      Serial.begin(9600);  // 通信速度: 9600, 14400, 19200, 28800, 38400, 57600, 115200
 
       led.SetBrightness(50);
-      for (uint8_t i = 0; i < 16; i++) {
+      for (uint8_t i = 0; i < 16 * 6; i++) {
+            led.Clear();
             led.SetColor(i, 1, 1, 1);
+            if (i % 16 == 0) tone(buzzer_pin, 2000, 20);
+            led.Show();
+            delay(20);
       }
-      led.Show();
+      led.Clear();
 
       delay(100);
       tone(buzzer_pin, 2000, 100);
@@ -60,7 +64,7 @@ void setup() {
       delay(100);
 }
 
-void loop() {   // 呼び出しのオーバーヘッド節減
+void loop() {  // 呼び出しのオーバーヘッド節減
       while (1) {
             oled.firstPage();
             do {
@@ -179,27 +183,6 @@ void Home() {
                   oled.print(debug_val[3]);
             }
             if (set_val != 0) mode = 3 - mode;
-      } else if (sub_item == 4) {
-            if (mode == 0) {
-                  oled.setCursor(CenterX(64, 8), CenterY(26));
-                  oled.print("Attitude");
-                  oled.setCursor(CenterX(64, 7), CenterY(38));
-                  oled.print("Control");
-            } else {
-                  oled.setCursor(0, CenterY(14));
-                  oled.print("0: ");
-                  oled.print(debug_val[0]);
-                  oled.setCursor(0, CenterY(26));
-                  oled.print("1: ");
-                  oled.print(debug_val[1]);
-                  oled.setCursor(0, CenterY(38));
-                  oled.print("2: ");
-                  oled.print(debug_val[2]);
-                  oled.setCursor(0, CenterY(50));
-                  oled.print("3: ");
-                  oled.print(debug_val[3]);
-            }
-            if (set_val != 0) mode = 4 - mode;
       } else {
             sub_item = 0;
       }
@@ -302,7 +285,6 @@ void Dribbler() {
       } else {
             sub_item = 0;
       }
-      led.Rainbow();
 }
 
 void Ball() {

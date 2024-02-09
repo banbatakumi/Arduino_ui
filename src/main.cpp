@@ -21,10 +21,10 @@ void Home();
 void Speed();
 void Dribbler();
 void Imu();
-void Ball();
-void Goal();
+void Camera();
 void Line();
 void Ir();
+void Ultrasonic();
 
 int8_t item = 0, sub_item = 0;
 int8_t set_val = 0;
@@ -88,27 +88,28 @@ void loop() {  // 呼び出しのオーバーヘッド節減
                   } else if (item == 2) {
                         Line();
                   } else if (item == 3) {
-                        Ball();
+                        Camera();
                   } else if (item == 4) {
-                        Goal();
-                  } else if (item == 5) {
                         Ir();
+                  } else if (item == 5) {
+                        Ultrasonic();
                   }
 
                   led.Show();
             } while (oled.nextPage());
 
             // UART送信
-            uint8_t send_byte_num = 8;
+            uint8_t send_byte_num = 9;
             uint8_t send_byte[send_byte_num];
             send_byte[0] = 0xFF;
             send_byte[1] = item + 127;
-            send_byte[2] = mode;
-            send_byte[3] = is_own_dir_correction;
-            send_byte[4] = moving_speed;
-            send_byte[5] = line_moving_speed;
-            send_byte[6] = dribbler_sig;
-            send_byte[7] = 0xAA;
+            send_byte[2] = sub_item;
+            send_byte[3] = mode;
+            send_byte[4] = is_own_dir_correction;
+            send_byte[5] = moving_speed;
+            send_byte[6] = line_moving_speed;
+            send_byte[7] = dribbler_sig;
+            send_byte[8] = 0xAA;
             for (uint8_t i = 0; i < send_byte_num; i++) {
                   Serial.write(send_byte[i]);
             }
@@ -259,6 +260,15 @@ void Speed() {
 }
 
 void Dribbler() {
+      static bool is_ball_catch_front;
+      static bool is_ball_catch_back;
+      if (Serial.available() > 0) {
+            uint8_t bool_data = Serial.read();
+            is_ball_catch_front = (bool_data >> 1) & 1;
+            is_ball_catch_back = bool_data & 1;
+            while (Serial.available() > 0) Serial.read();
+      }
+
       if (sub_item == 0) {
             oled.setCursor(CenterX(64, 8), CenterY(32));
             oled.print("Dribbler");
@@ -288,31 +298,28 @@ void Dribbler() {
       } else {
             sub_item = 0;
       }
+      if (is_ball_catch_front == 1) led.SetColor(0, 0, 0, 1);
+      if (is_ball_catch_back == 1) led.SetColor(8, 0, 0, 1);
 }
 
-void Ball() {
-      static int16_t ball_dir;
-      static uint8_t ball_dis;
-      static bool is_ball_catch_front;
-      static bool is_ball_catch_back;
-
-      if (Serial.available() > 0) {
-            if (Serial.read() == 0xFF) {
-                  uint8_t bool_data;
-                  ball_dir = Serial.read() * 2 - 180;
-                  ball_dis = Serial.read();
-                  bool_data = Serial.read();
-                  is_ball_catch_front = (bool_data >> 1) & 1;
-                  is_ball_catch_back = bool_data & 1;
-
-                  while (Serial.available() > 0) Serial.read();
-            }
-      }
-
+void Camera() {
       if (sub_item == 0) {
-            oled.setCursor(CenterX(64, 4), CenterY(32));
-            oled.print("Ball");
+            oled.setCursor(CenterX(64, 6), CenterY(32));
+            oled.print("Camera");
       } else if (sub_item == 1) {
+            static int16_t ball_dir;
+            static uint8_t ball_dis;
+
+            if (Serial.available() > 0) {
+                  if (Serial.read() == 0xFF) {
+                        uint8_t bool_data;
+                        ball_dir = Serial.read() * 2 - 180;
+                        ball_dis = Serial.read();
+                        bool_data = Serial.read();
+                        while (Serial.available() > 0) Serial.read();
+                  }
+            }
+
             oled.setCursor(0, CenterY(5));
             oled.print("Dir:");
             oled.print(ball_dir);
@@ -327,34 +334,22 @@ void Ball() {
             oled.drawLine(96, 0, 96, 64);
 
             led.SetColor(round(ball_dir / 22.5) % 16, 1, 0, 0);
-            if (is_ball_catch_front == 1) led.SetColor(0, 0, 0, 1);
-            if (is_ball_catch_back == 1) led.SetColor(8, 0, 0, 1);
-      } else {
-            sub_item = 0;
-      }
-}
+      } else if (sub_item == 2) {
+            static int16_t y_goal_dir;
+            static uint8_t y_goal_size;
+            static int16_t b_goal_dir;
+            static uint8_t b_goal_size;
 
-void Goal() {
-      static int16_t y_goal_dir;
-      static uint8_t y_goal_size;
-      static int16_t b_goal_dir;
-      static uint8_t b_goal_size;
-
-      if (Serial.available() > 0) {
-            if (Serial.read() == 0xFF) {
-                  y_goal_dir = Serial.read() * 2 - 180;
-                  y_goal_size = Serial.read();
-                  b_goal_dir = Serial.read() * 2 - 180;
-                  b_goal_size = Serial.read();
-
-                  while (Serial.available() > 0) Serial.read();
+            if (Serial.available() > 0) {
+                  if (Serial.read() == 0xFF) {
+                        y_goal_dir = Serial.read() * 2 - 180;
+                        y_goal_size = Serial.read();
+                        b_goal_dir = Serial.read() * 2 - 180;
+                        b_goal_size = Serial.read();
+                        while (Serial.available() > 0) Serial.read();
+                  }
             }
-      }
 
-      if (sub_item == 0) {
-            oled.setCursor(CenterX(64, 4), CenterY(32));
-            oled.print("Goal");
-      } else if (sub_item == 1) {
             oled.setCursor(0, CenterY(16));
             oled.print("Yellow");
             oled.setCursor(0, CenterY(32));
@@ -373,11 +368,12 @@ void Goal() {
             oled.print("S:");
             oled.print(b_goal_size);
 
+            led.SetColor(round(y_goal_dir / 22.5) % 16, 100, 100, 0);
+            led.SetColor(round(b_goal_dir / 22.5) % 16, 0, 0, 100);
+
       } else {
             sub_item = 0;
       }
-      led.SetColor(round(y_goal_dir / 22.5) % 16, 100, 100, 0);
-      led.SetColor(round(b_goal_dir / 22.5) % 16, 0, 0, 100);
 }
 
 void Line() {
@@ -456,6 +452,39 @@ void Ir() {
             oled.drawLine(96, 0, 96, 64);
 
             led.SetColor(round(ir_dir / 22.5) % 16, 1, 0, 0);
+      } else {
+            sub_item = 0;
+      }
+}
+
+void Ultrasonic() {
+      static uint8_t dis[4];
+
+      if (Serial.available() > 0) {
+            if (Serial.read() == 0xFF) {
+                  for (uint8_t i = 0; i < 4; i++) {
+                        dis[i] = Serial.read();
+                  }
+                  while (Serial.available() > 0) Serial.read();
+            }
+      }
+
+      if (sub_item == 0) {
+            oled.setCursor(CenterX(64, 8), CenterY(32));
+            oled.print("Distance");
+      } else if (sub_item == 1) {
+            oled.setCursor(0, CenterY(5));
+            oled.print("Front:");
+            oled.print(dis[0]);
+            oled.setCursor(0, CenterY(20));
+            oled.print("Right:");
+            oled.print(dis[1]);
+            oled.setCursor(0, CenterY(35));
+            oled.print("Back:");
+            oled.print(dis[2]);
+            oled.setCursor(0, CenterY(50));
+            oled.print("Left:");
+            oled.print(dis[3]);
       } else {
             sub_item = 0;
       }

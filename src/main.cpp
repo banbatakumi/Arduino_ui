@@ -18,7 +18,10 @@ void setup() {
       led.SetBrightness(50);
       for (uint8_t i = 0; i < 16 * 6; i++) {
             led.Clear();
-            led.SetColor(i, 1, 1, 1);
+            led.SetPixelColor(i, 200, 200, 200);
+            led.SetPixelColor(i - 1, 100, 100, 100);
+            led.SetPixelColor(i - 2, 50, 50, 50);
+            led.SetPixelColor(i - 3, 25, 25, 25);
             if (i % 16 == 0) tone(buzzer_pin, 2000, 20);
             led.Show();
             delay(20);

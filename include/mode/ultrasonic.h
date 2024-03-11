@@ -34,10 +34,10 @@ void Ultrasonic() {
       } else {
             sub_item = 0;
       }
-      if (dis[0] <= 15) led.SetColor(0, 1, 0, 0);
-      if (dis[1] <= 15) led.SetColor(4, 1, 0, 0);
-      if (dis[2] <= 15) led.SetColor(8, 1, 0, 0);
-      if (dis[3] <= 15) led.SetColor(12, 1, 0, 0);
+      if (dis[0] <= 15) led.SetPixelColorSimply(0, 1, 0, 0);
+      if (dis[1] <= 15) led.SetPixelColorSimply(4, 1, 0, 0);
+      if (dis[2] <= 15) led.SetPixelColorSimply(8, 1, 0, 0);
+      if (dis[3] <= 15) led.SetPixelColorSimply(12, 1, 0, 0);
 }
 
 #endif

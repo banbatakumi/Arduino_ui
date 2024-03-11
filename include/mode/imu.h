@@ -36,7 +36,7 @@ void Imu() {
             sub_item = 0;
       }
 
-      led.SetColor(round((360 - own_dir) / 22.5) % 16, 1, 0, 0);
+      led.SetDegree(SimplifyDeg(360 - own_dir), 1, 0, 0);
 }
 
 #endif

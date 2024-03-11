@@ -42,8 +42,8 @@ void Dribbler() {
       } else {
             sub_item = 0;
       }
-      if (is_ball_catch_front == 1) led.SetColor(0, 0, 0, 1);
-      if (is_ball_catch_back == 1) led.SetColor(8, 0, 0, 1);
+      if (is_ball_catch_front == 1) led.SetPixelColorSimply(0, 0, 0, 1);
+      if (is_ball_catch_back == 1) led.SetPixelColorSimply(8, 0, 0, 1);
 }
 
 #endif

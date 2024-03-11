@@ -3,6 +3,8 @@
 
 #include "setup.h"
 
+#define LOW_VOLTAGE 8
+
 void Home() {
       static int16_t debug_val[4];
       if (Serial.available() > 0) {
@@ -22,10 +24,7 @@ void Home() {
             }
       }
 
-      if (sub_item == 0) {
-            oled.setCursor(CenterX(64, 4), CenterY(32));
-            oled.print("Home");
-
+      if (mode == 0) {
             oled.setCursor(0, CenterY(5));
             if (battery_voltage > 6) {
                   oled.print("Battery: ");
@@ -35,29 +34,39 @@ void Home() {
             oled.print(battery_voltage);
             oled.print("v");
             oled.drawLine(0, 15, 128, 15);
-            mode = 0;
 
-            if (battery_voltage < 8) {
+            if (battery_voltage < LOW_VOLTAGE) {
                   for (uint8_t i = 0; i < 16; i++) {
-                        led.SetColor(i, 1, 0, 0);
+                        led.SetPixelColorSimply(i, 1, 0, 0);
                   }
-            } else {
-                  for (uint8_t i = 0; i < (battery_voltage - 8) * 8; i++) {
-                        led.SetColor(i, 1, 1, 1);
+                  if (sub_item == 1 || sub_item == 2) {
+                        oled.drawFrame(13, 42, 102, 15);
+                        oled.setCursor(CenterX(64, 11), CenterY(48));
+                        oled.print("Can't start");
+                  }
+            } else if (sub_item == 0) {
+                  for (uint8_t i = 0; i < round((battery_voltage - 8) * 8); i++) {
+                        led.SetPixelColorSimply(i, 1, 1, 1);
                   }
             }
+      }
+
+      if (sub_item == 0) {
+            oled.setCursor(CenterX(64, 4), CenterY(32));
+            oled.print("Home");
+            mode = 0;
       } else if (sub_item == 1) {
             if (mode == 0) {
                   oled.setCursor(CenterX(64, 7), CenterY(32));
                   oled.print("Offence");
             }
-            if (set_val != 0) mode = 1 - mode;
+            if (set_val != 0 && battery_voltage > LOW_VOLTAGE) mode = 1 - mode;
       } else if (sub_item == 2) {
             if (mode == 0) {
                   oled.setCursor(CenterX(64, 7), CenterY(32));
                   oled.print("Defense");
             }
-            if (set_val != 0) mode = 2 - mode;
+            if (set_val != 0 && battery_voltage > LOW_VOLTAGE) mode = 2 - mode;
       } else if (sub_item == 3) {
             if (mode == 0) {
                   oled.setCursor(CenterX(64, 5), CenterY(32));

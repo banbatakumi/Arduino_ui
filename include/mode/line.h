@@ -43,9 +43,9 @@ void Line() {
             sub_item = 0;
       }
 
-      if (is_on_line == 1) led.SetColor(round(line_inside_dir / 22.5) % 16, 0, 1, 0);
-      if (is_left_line) led.SetColor(12, 0, 0, 1);
-      if (is_right_line) led.SetColor(4, 0, 0, 1);
+      if (is_on_line == 1) led.SetDegree(line_inside_dir, 0, 1, 0);
+      if (is_left_line) led.SetPixelColorSimply(12, 0, 0, 1);
+      if (is_right_line) led.SetPixelColorSimply(4, 0, 0, 1);
 }
 
 #endif

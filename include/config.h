@@ -93,8 +93,8 @@ void ButtonRead() {
                   tone(buzzer_pin, 1500, 100);
                   delay(250);
             } else {
-                  tone(buzzer_pin, 1500, 100);
-                  delay(100);
+                  tone(buzzer_pin, 1500, 50);
+                  delay(50);
             }
       }
       if (is_button[2] == 1) {
@@ -104,7 +104,7 @@ void ButtonRead() {
                   set_val += 1;
             }
             if (pre_is_button[2] == 0) {
-                  tone(buzzer_pin, 1500, 50);
+                  tone(buzzer_pin, 1500, 100);
                   delay(250);
             } else {
                   tone(buzzer_pin, 1500, 50);

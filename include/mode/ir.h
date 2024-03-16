@@ -33,7 +33,7 @@ void Ir() {
             oled.drawLine(64, 32, 128, 32);
             oled.drawLine(96, 0, 96, 64);
 
-            led.SetDegree(ir_dir, 1, 0, 0);
+            if (ir_dis != 0) led.SetDegree(ir_dir, 1, 0, 0);
       } else {
             sub_item = 0;
       }

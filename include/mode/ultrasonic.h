@@ -34,10 +34,26 @@ void Ultrasonic() {
       } else {
             sub_item = 0;
       }
-      if (dis[0] <= 15) led.SetPixelColorSimply(0, 1, 0, 0);
-      if (dis[1] <= 15) led.SetPixelColorSimply(4, 1, 0, 0);
-      if (dis[2] <= 15) led.SetPixelColorSimply(8, 1, 0, 0);
-      if (dis[3] <= 15) led.SetPixelColorSimply(12, 1, 0, 0);
+      if (dis[0] <= 50) led.SetPixelColor(0, (50 - dis[0]) * 2, 0, 0);
+      if (dis[0] <= 25) {
+            led.SetPixelColor(15, (25 - dis[0]) * 2, 0, 0);
+            led.SetPixelColor(1, (25 - dis[0]) * 2, 0, 0);
+      }
+      if (dis[1] <= 50) led.SetPixelColor(4, (50 - dis[1]) * 2, 0, 0);
+      if (dis[1] <= 25) {
+            led.SetPixelColor(3, (25 - dis[1]) * 2, 0, 0);
+            led.SetPixelColor(5, (25 - dis[1]) * 2, 0, 0);
+      }
+      if (dis[2] <= 50) led.SetPixelColor(8, (50 - dis[2]) * 2, 0, 0);
+      if (dis[2] <= 25) {
+            led.SetPixelColor(7, (25 - dis[2]) * 2, 0, 0);
+            led.SetPixelColor(9, (25 - dis[2]) * 2, 0, 0);
+      }
+      if (dis[3] <= 50) led.SetPixelColor(12, (50 - dis[3]) * 2, 0, 0);
+      if (dis[3] <= 25) {
+            led.SetPixelColor(11, (25 - dis[3]) * 2, 0, 0);
+            led.SetPixelColor(13, (25 - dis[3]) * 2, 0, 0);
+      }
 }
 
 #endif

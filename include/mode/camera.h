@@ -32,7 +32,7 @@ void Camera() {
             oled.drawLine(64, 32, 128, 32);
             oled.drawLine(96, 0, 96, 64);
 
-            led.SetDegree(ball_dir, 1, 0, 0);
+            if (ball_dis != 0) led.SetDegree(ball_dir, 1, 0, 0);
       } else if (sub_item == 2) {
             static int16_t y_goal_dir;
             static uint8_t y_goal_size;
@@ -67,8 +67,8 @@ void Camera() {
             oled.print("S:");
             oled.print(b_goal_size);
 
-            led.SetPixelColorSimply(round(y_goal_dir / 22.5) % 16, 1, 1, 0);
-            led.SetPixelColorSimply(round(b_goal_dir / 22.5) % 16, 0, 0, 1);
+            if (y_goal_size != 0) led.SetPixelColorSimply(round(y_goal_dir / 22.5) % 16, 1, 1, 0);
+            if (b_goal_size != 0) led.SetPixelColorSimply(round(b_goal_dir / 22.5) % 16, 0, 0, 1);
       } else if (sub_item == 3) {
             static int16_t center_dir;
             static uint8_t center_dis;
@@ -105,7 +105,7 @@ void Camera() {
             oled.drawEllipse(101, 32, 9, 9);
             oled.drawEllipse(101, 32, 1, 1);
 
-            led.SetDegree(center_dir, 0, 1, 0);
+            if (center_dis != 0) led.SetDegree(center_dir, 0, 1, 0);
       } else {
             sub_item = 0;
       }

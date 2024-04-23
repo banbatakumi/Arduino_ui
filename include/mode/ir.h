@@ -3,10 +3,10 @@
 
 #include "setup.h"
 
-void Ir() {
-      static int16_t ir_dir;
-      static uint8_t ir_dis;
+int16_t ir_dir;
+uint8_t ir_dis;
 
+void Ir() {
       if (Serial.available() > 0) {
             if (Serial.read() == 0xFF) {
                   ir_dir = Serial.read() * 2 - 180;

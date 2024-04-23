@@ -3,14 +3,24 @@
 
 #include "setup.h"
 
+int16_t ball_dir;
+uint8_t ball_dis;
+
+int16_t y_goal_dir;
+uint8_t y_goal_size;
+int16_t b_goal_dir;
+uint8_t b_goal_size;
+
+int16_t center_dir;
+uint8_t center_dis;
+int8_t own_x;
+int8_t own_y;
+
 void Camera() {
       if (sub_item == 0) {
             oled.setCursor(CenterX(64, 6), CenterY(32));
             oled.print("Camera");
       } else if (sub_item == 1) {
-            static int16_t ball_dir;
-            static uint8_t ball_dis;
-
             if (Serial.available() > 0) {
                   if (Serial.read() == 0xFF) {
                         ball_dir = Serial.read() * 2 - 180;
@@ -25,20 +35,14 @@ void Camera() {
             oled.setCursor(0, CenterY(20));
             oled.print("Dis:");
             oled.print(ball_dis);
-            oled.drawFilledEllipse(96 + ((100 - ball_dis) / 3 + 3) * cos((ball_dir - 90) * PI / 180.000), 32 + ((100 - ball_dis) / 3 + 3) * sin((ball_dir - 90) * PI / 180.000), 2, 2);
+            oled.drawFilledEllipse(96 + ((200 - ball_dis) / 6 + 3) * cos((ball_dir - 90) * PI / 180.000), 32 + ((200 - ball_dis) / 6 + 3) * sin((ball_dir - 90) * PI / 180.000), 2, 2);
             oled.drawEllipse(96, 32, 30, 30);
             oled.drawEllipse(96, 32, 15, 15);
-            oled.drawFilledEllipse(96, 32, 2, 2);
             oled.drawLine(64, 32, 128, 32);
             oled.drawLine(96, 0, 96, 64);
 
             if (ball_dis != 0) led.SetDegree(ball_dir, 1, 0, 0);
       } else if (sub_item == 2) {
-            static int16_t y_goal_dir;
-            static uint8_t y_goal_size;
-            static int16_t b_goal_dir;
-            static uint8_t b_goal_size;
-
             if (Serial.available() > 0) {
                   if (Serial.read() == 0xFF) {
                         y_goal_dir = Serial.read() * 2 - 180;
@@ -70,11 +74,6 @@ void Camera() {
             if (y_goal_size != 0) led.SetPixelColorSimply(round(y_goal_dir / 22.5) % 16, 1, 1, 0);
             if (b_goal_size != 0) led.SetPixelColorSimply(round(b_goal_dir / 22.5) % 16, 0, 0, 1);
       } else if (sub_item == 3) {
-            static int16_t center_dir;
-            static uint8_t center_dis;
-            static int8_t own_x;
-            static int8_t own_y;
-
             if (Serial.available() > 0) {
                   if (Serial.read() == 0xFF) {
                         center_dir = Serial.read() * 2 - 180;

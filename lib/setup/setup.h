@@ -39,6 +39,4 @@ uint8_t moving_speed = 75;
 uint8_t line_moving_speed = 75;
 uint8_t dribbler_sig = 0;
 
-float battery_voltage;
-
 #endif

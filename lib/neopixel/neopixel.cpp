@@ -19,68 +19,69 @@ void NeoPixel::SetPixelColor(int8_t led_num_, uint8_t red_, uint8_t green_, uint
 }
 
 void NeoPixel::SetDegree(int16_t degree_, bool red_, bool green_, bool blue_) {
+      int16_t degree;
       if (degree_ >= -45 && degree_ <= 45) {
-            int16_t degree = SimplifyDeg(degree_);
+            degree = SimplifyDeg(degree_);
             SetPixelColor(0, (45 - abs(degree)) / 45.0f * brightness * red_, (45 - abs(degree)) / 45.0f * brightness * green_, (45 - abs(degree)) / 45.0f * brightness * blue_);
       }
       if (degree_ >= -22.5 && degree_ <= 67.5) {
-            int16_t degree = SimplifyDeg(degree_ - 22.5);
+            degree = SimplifyDeg(degree_ - 22.5);
             SetPixelColor(1, (45 - abs(degree)) / 45.0f * brightness * red_, (45 - abs(degree)) / 45.0f * brightness * green_, (45 - abs(degree)) / 45.0f * brightness * blue_);
       }
       if (degree_ >= 0 && degree_ <= 90) {
-            int16_t degree = SimplifyDeg(degree_ - 45);
+            degree = SimplifyDeg(degree_ - 45);
             SetPixelColor(2, (45 - abs(degree)) / 45.0f * brightness * red_, (45 - abs(degree)) / 45.0f * brightness * green_, (45 - abs(degree)) / 45.0f * brightness * blue_);
       }
       if (degree_ >= 22.5 && degree_ <= 112.5) {
-            int16_t degree = SimplifyDeg(degree_ - 67.5);
+            degree = SimplifyDeg(degree_ - 67.5);
             SetPixelColor(3, (45 - abs(degree)) / 45.0f * brightness * red_, (45 - abs(degree)) / 45.0f * brightness * green_, (45 - abs(degree)) / 45.0f * brightness * blue_);
       }
       if (degree_ >= 45 && degree_ <= 135) {
-            int16_t degree = SimplifyDeg(degree_ - 90);
+            degree = SimplifyDeg(degree_ - 90);
             SetPixelColor(4, (45 - abs(degree)) / 45.0f * brightness * red_, (45 - abs(degree)) / 45.0f * brightness * green_, (45 - abs(degree)) / 45.0f * brightness * blue_);
       }
       if (degree_ >= 67.5 && degree_ <= 157.5) {
-            int16_t degree = SimplifyDeg(degree_ - 112.5);
+            degree = SimplifyDeg(degree_ - 112.5);
             SetPixelColor(5, (45 - abs(degree)) / 45.0f * brightness * red_, (45 - abs(degree)) / 45.0f * brightness * green_, (45 - abs(degree)) / 45.0f * brightness * blue_);
       }
       if (degree_ >= 90 && degree_ <= 180) {
-            int16_t degree = SimplifyDeg(degree_ - 135);
+            degree = SimplifyDeg(degree_ - 135);
             SetPixelColor(6, (45 - abs(degree)) / 45.0f * brightness * red_, (45 - abs(degree)) / 45.0f * brightness * green_, (45 - abs(degree)) / 45.0f * brightness * blue_);
       }
       if (degree_ >= 112.5 || degree_ <= -157.5) {
-            int16_t degree = SimplifyDeg(degree_ - 157.5);
+            degree = SimplifyDeg(degree_ - 157.5);
             SetPixelColor(7, (45 - abs(degree)) / 45.0f * brightness * red_, (45 - abs(degree)) / 45.0f * brightness * green_, (45 - abs(degree)) / 45.0f * brightness * blue_);
       }
       if (degree_ >= 135 || degree_ <= -135) {
-            int16_t degree = SimplifyDeg(degree_ - 180);
+            degree = SimplifyDeg(degree_ - 180);
             SetPixelColor(8, (45 - abs(degree)) / 45.0f * brightness * red_, (45 - abs(degree)) / 45.0f * brightness * green_, (45 - abs(degree)) / 45.0f * brightness * blue_);
       }
       if (degree_ >= 157.5 || degree_ <= -112.5) {
-            int16_t degree = SimplifyDeg(degree_ + 157.5);
+            degree = SimplifyDeg(degree_ + 157.5);
             SetPixelColor(9, (45 - abs(degree)) / 45.0f * brightness * red_, (45 - abs(degree)) / 45.0f * brightness * green_, (45 - abs(degree)) / 45.0f * brightness * blue_);
       }
       if (degree_ >= -180 && degree_ <= -90) {
-            int16_t degree = SimplifyDeg(degree_ + 135);
+            degree = SimplifyDeg(degree_ + 135);
             SetPixelColor(10, (45 - abs(degree)) / 45.0f * brightness * red_, (45 - abs(degree)) / 45.0f * brightness * green_, (45 - abs(degree)) / 45.0f * brightness * blue_);
       }
       if (degree_ >= -157.5 && degree_ <= -67.5) {
-            int16_t degree = SimplifyDeg(degree_ + 112.5);
+            degree = SimplifyDeg(degree_ + 112.5);
             SetPixelColor(11, (45 - abs(degree)) / 45.0f * brightness * red_, (45 - abs(degree)) / 45.0f * brightness * green_, (45 - abs(degree)) / 45.0f * brightness * blue_);
       }
       if (degree_ >= -135 && degree_ <= -45) {
-            int16_t degree = SimplifyDeg(degree_ + 90);
+            degree = SimplifyDeg(degree_ + 90);
             SetPixelColor(12, (45 - abs(degree)) / 45.0f * brightness * red_, (45 - abs(degree)) / 45.0f * brightness * green_, (45 - abs(degree)) / 45.0f * brightness * blue_);
       }
       if (degree_ >= -112.5 && degree_ <= -22.5) {
-            int16_t degree = SimplifyDeg(degree_ + 67.5);
+            degree = SimplifyDeg(degree_ + 67.5);
             SetPixelColor(13, (45 - abs(degree)) / 45.0f * brightness * red_, (45 - abs(degree)) / 45.0f * brightness * green_, (45 - abs(degree)) / 45.0f * brightness * blue_);
       }
       if (degree_ >= -90 && degree_ <= 0) {
-            int16_t degree = SimplifyDeg(degree_ + 45);
+            degree = SimplifyDeg(degree_ + 45);
             SetPixelColor(14, (45 - abs(degree)) / 45.0f * brightness * red_, (45 - abs(degree)) / 45.0f * brightness * green_, (45 - abs(degree)) / 45.0f * brightness * blue_);
       }
       if (degree_ >= -67.5 && degree_ <= 22.5) {
-            int16_t degree = SimplifyDeg(degree_ + 22.5);
+            degree = SimplifyDeg(degree_ + 22.5);
             SetPixelColor(15, (45 - abs(degree)) / 45.0f * brightness * red_, (45 - abs(degree)) / 45.0f * brightness * green_, (45 - abs(degree)) / 45.0f * brightness * blue_);
       }
 }

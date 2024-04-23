@@ -3,9 +3,9 @@
 
 #include "setup.h"
 
-void Ultrasonic() {
-      static uint8_t dis[4];
+uint8_t dis[4];
 
+void Ultrasonic() {
       if (Serial.available() > 0) {
             if (Serial.read() == 0xFF) {
                   for (uint8_t i = 0; i < 4; i++) {

@@ -5,22 +5,32 @@
 
 #define LOW_VOLTAGE 8
 
+int16_t debug_val[4];
+int16_t own_dir;
+float battery_voltage;
+
 void Home() {
-      static int16_t debug_val[4];
       if (Serial.available() > 0) {
             if (Serial.read() == 0xFF) {
-                  uint8_t debug_val_plus;
-                  uint8_t debug_val_minus;
-
+                  uint8_t debug_val_H[2];
+                  uint8_t debug_val_L[2];
+                  uint8_t own_dir_H;
+                  uint8_t own_dir_L;
                   battery_voltage = Serial.read() / 20.00;
-                  debug_val_plus = Serial.read();
-                  debug_val_minus = Serial.read();
-                  debug_val[1] = Serial.read();
+                  own_dir_H = Serial.read();
+                  own_dir_L = Serial.read();
+                  debug_val_H[0] = Serial.read();
+                  debug_val_L[0] = Serial.read();
+                  debug_val_H[1] = Serial.read();
+                  debug_val_L[1] = Serial.read();
                   debug_val[2] = Serial.read();
                   debug_val[3] = Serial.read();
 
-                  debug_val[0] = SimplifyDeg(debug_val_plus == 0 ? debug_val_minus * -1 : debug_val_plus);
-                  while (Serial.available() > 0) Serial.read();
+                  own_dir = ((((uint16_t)own_dir_H << 8) & 0xFF00) | ((int16_t)own_dir_L & 0x00FF)) - 32768;
+                  for (uint8_t i = 0; i < 2; i++) {
+                        debug_val[i] = ((((uint16_t)debug_val_H[i] << 8) & 0xFF00) | ((int16_t)debug_val_L[i] & 0x00FF)) - 32768;
+                  }
+                  // while (Serial.available() > 0) Serial.read();
             }
       }
 
@@ -54,6 +64,8 @@ void Home() {
       if (sub_item == 0) {
             oled.setCursor(CenterX(64, 4), CenterY(32));
             oled.print("Home");
+            oled.setCursor(CenterX(64, String(own_dir).length()), CenterY(48));
+            oled.print(own_dir);
             mode = 0;
       } else if (sub_item == 1) {
             if (mode == 0) {
@@ -84,6 +96,13 @@ void Home() {
                   oled.setCursor(0, CenterY(50));
                   oled.print("3: ");
                   oled.print(debug_val[3]);
+                  if (debug_val[1] > 100) {
+                        led.SetDegree(SimplifyDeg(debug_val[0]), 1, 0, 0);
+                  } else if (debug_val[1] > 60) {
+                        led.SetDegree(SimplifyDeg(debug_val[0]), 1, 1, 0);
+                  } else if (debug_val[1] > 20){
+                        led.SetDegree(SimplifyDeg(debug_val[0]), 0, 1, 0);
+                  }
             }
             if (set_val != 0) mode = 3 - mode;
       } else {

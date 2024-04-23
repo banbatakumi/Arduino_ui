@@ -3,9 +3,10 @@
 
 #include "setup.h"
 
+bool is_ball_catch_front;
+bool is_ball_catch_back;
+
 void Dribbler() {
-      static bool is_ball_catch_front;
-      static bool is_ball_catch_back;
       if (Serial.available() > 0) {
             uint8_t bool_data = Serial.read();
             is_ball_catch_front = (bool_data >> 1) & 1;

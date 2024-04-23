@@ -3,25 +3,22 @@
 
 #include "setup.h"
 
+int16_t yaw, pitch, roll;
+
 void Imu() {
-      static int16_t own_dir;
+      if (Serial.read() == 0xFF) {
+            uint8_t yaw_H = Serial.read();
+            uint8_t yaw_L = Serial.read();
 
-      if (Serial.available() > 0) {
-            if (Serial.read() == 0xFF) {
-                  uint8_t yaw_plus = Serial.read();
-                  uint8_t yaw_minus = Serial.read();
-
-                  own_dir = yaw_plus == 0 ? yaw_minus * -1 : yaw_plus;
-            }
-            while (Serial.available() > 0) Serial.read();
+            yaw = ((((uint16_t)yaw_H << 8) & 0xFF00) | ((int16_t)yaw_L & 0x00FF)) - 32768;
       }
 
       if (sub_item == 0) {
             oled.setCursor(CenterX(64, 3), CenterY(32));
             oled.print("IMU");
       } else if (sub_item == 1) {
-            oled.setCursor(CenterX(64, String(own_dir).length()), CenterY(32));
-            oled.print(own_dir);
+            oled.setCursor(CenterX(64, String(yaw).length()), CenterY(32));
+            oled.print(yaw);
 
             static uint8_t cnt = 0;
 
@@ -36,7 +33,7 @@ void Imu() {
             sub_item = 0;
       }
 
-      led.SetDegree(SimplifyDeg(360 - own_dir), 1, 0, 0);
+      led.SetDegree(SimplifyDeg(360 - yaw), 1, 0, 0);
 }
 
 #endif

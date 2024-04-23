@@ -3,14 +3,14 @@
 
 #include "setup.h"
 
-void Line() {
-      static int16_t line_dir;
-      static int16_t line_inside_dir;
-      static uint8_t line_interval;
-      static bool is_on_line;
-      static bool is_left_line;
-      static bool is_right_line;
+int16_t line_dir;
+int16_t line_inside_dir;
+uint8_t line_interval;
+bool is_on_line;
+bool is_left_line;
+bool is_right_line;
 
+void Line() {
       if (Serial.available() > 0) {
             if (Serial.read() == 0xFF) {
                   uint8_t bool_data;

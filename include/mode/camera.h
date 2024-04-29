@@ -5,6 +5,8 @@
 
 int16_t ball_dir;
 uint8_t ball_dis;
+int8_t ball_velocity_x;
+int8_t ball_velocity_y;
 
 int16_t y_goal_dir;
 uint8_t y_goal_size;
@@ -25,6 +27,8 @@ void Camera() {
                   if (Serial.read() == 0xFF) {
                         ball_dir = Serial.read() * 2 - 180;
                         ball_dis = Serial.read();
+                        ball_velocity_x = Serial.read() - 127;
+                        ball_velocity_y = Serial.read() - 127;
                         while (Serial.available() > 0) Serial.read();
                   }
             }
@@ -35,7 +39,13 @@ void Camera() {
             oled.setCursor(0, CenterY(20));
             oled.print("Dis:");
             oled.print(ball_dis);
-            oled.drawFilledEllipse(96 + ((200 - ball_dis) / 6 + 3) * cos((ball_dir - 90) * PI / 180.000), 32 + ((200 - ball_dis) / 6 + 3) * sin((ball_dir - 90) * PI / 180.000), 2, 2);
+            oled.setCursor(0, CenterY(35));
+            oled.print("VelX:");
+            oled.print(ball_velocity_x);
+            oled.setCursor(0, CenterY(40));
+            oled.print("VelY:");
+            oled.print(ball_velocity_y);
+            oled.drawFilledEllipse(96 + (ball_dis / 6 + 3) * cos((ball_dir - 90) * PI / 180.000), 32 + (ball_dis / 6 + 3) * sin((ball_dir - 90) * PI / 180.000), 2, 2);
             oled.drawEllipse(96, 32, 30, 30);
             oled.drawEllipse(96, 32, 15, 15);
             oled.drawLine(64, 32, 128, 32);

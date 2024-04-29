@@ -46,19 +46,16 @@ void ModeRun() {
 }
 
 void SendData() {  // UART送信
-      const uint8_t send_byte_num = 9;
+      const uint8_t send_byte_num = 7;
       uint8_t send_byte[send_byte_num];
       send_byte[0] = 0xFF;
       send_byte[1] = item + 127;
-      send_byte[2] = sub_item;
-      send_byte[3] = mode;
-      send_byte[4] = is_own_dir_correction;
-      send_byte[5] = moving_speed;
-      send_byte[6] = line_moving_speed;
-      send_byte[7] = dribbler_sig;
-      send_byte[8] = 0xAA;
+      send_byte[2] = sub_item << 4 | mode;
+      send_byte[3] = is_own_dir_correction << 4 | dribbler_sig;
+      send_byte[4] = moving_speed;
+      send_byte[5] = line_moving_speed;
+      send_byte[6] = 0xAA;
       Serial.write(send_byte, send_byte_num);
-      Serial.flush();
 }
 
 void ButtonRead() {

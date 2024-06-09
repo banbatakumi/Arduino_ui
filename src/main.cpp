@@ -13,12 +13,12 @@ void setup() {
             oled.print("Crescent(Re)");
       } while (oled.nextPage());
 
-      Serial.begin(9600);  // 通信速度: 9600, 14400, 19200, 28800, 38400, 57600, 115200
+      Serial.begin(57600);  // 通信速度: 9600, 14400, 19200, 28800, 38400, 57600, 115200
 
       led.SetBrightness(50);
       led.Clear();
       for (uint8_t i = 0; i < 16; i++) {
-            //led.SetPixelColor(i, 200, 200, 200);
+            // led.SetPixelColor(i, 200, 200, 200);
             if (i % 2 == 0) tone(buzzer_pin, 2000, 20);
             led.Show();
             delay(25);

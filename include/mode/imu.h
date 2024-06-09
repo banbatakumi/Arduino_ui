@@ -6,11 +6,14 @@
 int16_t yaw, pitch, roll;
 
 void Imu() {
-      if (Serial.read() == 0xFF) {
-            uint8_t yaw_H = Serial.read();
-            uint8_t yaw_L = Serial.read();
+      if (Serial.available() > 0) {
+            if (Serial.read() == 0xFF) {
+                  uint8_t yaw_H = Serial.read();
+                  uint8_t yaw_L = Serial.read();
 
-            yaw = ((((uint16_t)yaw_H << 8) & 0xFF00) | ((int16_t)yaw_L & 0x00FF)) - 32768;
+                  yaw = ((((uint16_t)yaw_H << 8) & 0xFF00) | ((int16_t)yaw_L & 0x00FF)) - 32768;
+                  while (Serial.available() > 0) Serial.read();
+            }
       }
 
       if (sub_item == 0) {

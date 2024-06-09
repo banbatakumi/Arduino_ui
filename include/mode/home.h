@@ -30,7 +30,7 @@ void Home() {
                   for (uint8_t i = 0; i < 2; i++) {
                         debug_val[i] = ((((uint16_t)debug_val_H[i] << 8) & 0xFF00) | ((int16_t)debug_val_L[i] & 0x00FF)) - 32768;
                   }
-                  // while (Serial.available() > 0) Serial.read();
+                  while (Serial.available() > 0) Serial.read();
             }
       }
 
@@ -100,7 +100,7 @@ void Home() {
                         led.SetDegree(SimplifyDeg(debug_val[0]), 1, 0, 0);
                   } else if (debug_val[1] > 60) {
                         led.SetDegree(SimplifyDeg(debug_val[0]), 1, 1, 0);
-                  } else if (debug_val[1] > 20){
+                  } else if (debug_val[1] > 20) {
                         led.SetDegree(SimplifyDeg(debug_val[0]), 0, 1, 0);
                   }
             }

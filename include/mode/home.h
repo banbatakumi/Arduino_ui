@@ -8,6 +8,10 @@
 int16_t debug_val[4];
 int16_t own_dir;
 float battery_voltage;
+bool is_connect_to_ally;
+bool is_ally_catch_ball;
+bool is_ally_moving;
+uint8_t cnt;
 
 void Home() {
       if (Serial.available() > 0) {
@@ -16,7 +20,9 @@ void Home() {
                   uint8_t debug_val_L[2];
                   uint8_t own_dir_H;
                   uint8_t own_dir_L;
+                  uint8_t bool_data;
                   battery_voltage = Serial.read() / 20.00;
+                  bool_data = Serial.read();
                   own_dir_H = Serial.read();
                   own_dir_L = Serial.read();
                   debug_val_H[0] = Serial.read();
@@ -27,9 +33,11 @@ void Home() {
                   debug_val[3] = Serial.read();
 
                   own_dir = ((((uint16_t)own_dir_H << 8) & 0xFF00) | ((int16_t)own_dir_L & 0x00FF)) - 32768;
-                  for (uint8_t i = 0; i < 2; i++) {
-                        debug_val[i] = ((((uint16_t)debug_val_H[i] << 8) & 0xFF00) | ((int16_t)debug_val_L[i] & 0x00FF)) - 32768;
-                  }
+                  for (uint8_t i = 0; i < 2; i++) debug_val[i] = ((((uint16_t)debug_val_H[i] << 8) & 0xFF00) | ((int16_t)debug_val_L[i] & 0x00FF)) - 32768;
+                  is_connect_to_ally = bool_data & 1;
+                  is_ally_moving = bool_data >> 1 & 1;
+                  is_ally_catch_ball = bool_data >> 2 & 1;
+                  is_moving = bool_data >> 3 & 1;
                   while (Serial.available() > 0) Serial.read();
             }
       }
@@ -59,6 +67,14 @@ void Home() {
                         led.SetPixelColorSimply(i, 1, 1, 1);
                   }
             }
+
+            if (is_connect_to_ally) {
+                  oled.drawLine(5, 25, 15, 35);
+                  oled.drawLine(5, 35, 15, 25);
+                  oled.drawLine(10, 20, 10, 40);
+                  oled.drawLine(10, 20, 15, 25);
+                  oled.drawLine(10, 40, 15, 35);
+            }
       }
 
       if (sub_item == 0) {
@@ -69,17 +85,20 @@ void Home() {
             mode = 0;
       } else if (sub_item == 1) {
             if (mode == 0) {
-                  oled.setCursor(CenterX(64, 7), CenterY(32));
-                  oled.print("Offence");
+                  oled.setCursor(CenterX(40, 2), CenterY(32));
+                  oled.print("OF");
+                  oled.setCursor(CenterX(88, 2), CenterY(32));
+                  oled.print("DF");
             }
-            if (set_val != 0 && battery_voltage > LOW_VOLTAGE) mode = 1 - mode;
+            if (set_val == -1 && battery_voltage > LOW_VOLTAGE) mode = 1 - mode;
+            if (set_val == 1 && battery_voltage > LOW_VOLTAGE) mode = 2 - mode;
+            if (pre_sub_item == 0) do_own_dir_correction = 1;
+            if (do_own_dir_correction == 1) cnt++;
+            if (cnt > 10) {
+                  do_own_dir_correction = 0;
+                  cnt = 0;
+            }
       } else if (sub_item == 2) {
-            if (mode == 0) {
-                  oled.setCursor(CenterX(64, 7), CenterY(32));
-                  oled.print("Defense");
-            }
-            if (set_val != 0 && battery_voltage > LOW_VOLTAGE) mode = 2 - mode;
-      } else if (sub_item == 3) {
             if (mode == 0) {
                   oled.setCursor(CenterX(64, 5), CenterY(32));
                   oled.print("Debug");

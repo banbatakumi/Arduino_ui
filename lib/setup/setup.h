@@ -28,15 +28,18 @@ void Line();
 void Ir();
 void Ultrasonic();
 
-int8_t item = 0, sub_item = 0;
+int8_t item = 0, sub_item = 0, pre_sub_item;
 int8_t set_val = 0;
 bool is_button[3], pre_is_button[3];
 
 // send data
-bool is_own_dir_correction;
+bool do_own_dir_correction;
 uint8_t mode = 0;
 uint8_t moving_speed = 75;
 uint8_t line_moving_speed = 75;
 uint8_t dribbler_sig = 0;
+
+// receive data
+bool is_moving;
 
 #endif

@@ -75,6 +75,18 @@ void Home() {
                   oled.drawLine(10, 20, 15, 25);
                   oled.drawLine(10, 40, 15, 35);
             }
+            if (is_ally_moving) {
+                  oled.drawLine(123, 20, 118, 20);
+                  oled.drawLine(123, 25, 118, 25);
+                  oled.drawLine(123, 30, 118, 30);
+                  oled.drawFrame(105, 20, 11, 11);
+            }
+            if (is_ally_catch_ball) {
+                  oled.drawLine(105, 40, 105, 45);
+                  oled.drawLine(105, 45, 123, 45);
+                  oled.drawLine(123, 40, 123, 45);
+                  oled.drawCircle(114, 40, 4);
+            }
       }
 
       if (sub_item == 0) {
@@ -90,8 +102,8 @@ void Home() {
                   oled.setCursor(CenterX(88, 2), CenterY(32));
                   oled.print("DF");
             }
-            if (set_val == -1 && battery_voltage > LOW_VOLTAGE) mode = 1 - mode;
-            if (set_val == 1 && battery_voltage > LOW_VOLTAGE) mode = 2 - mode;
+            if (set_val == -1 && battery_voltage > LOW_VOLTAGE) mode = 1;
+            if (set_val == 1 && battery_voltage > LOW_VOLTAGE) mode = 2;
             if (pre_sub_item == 0) do_own_dir_correction = 1;
             if (do_own_dir_correction == 1) cnt++;
             if (cnt > 10) {

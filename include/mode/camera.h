@@ -17,6 +17,8 @@ int16_t center_dir;
 uint8_t center_dis;
 int8_t own_x;
 int8_t own_y;
+uint8_t front_proximity;
+uint8_t back_proximity;
 
 void Camera() {
       if (sub_item == 0) {
@@ -42,7 +44,7 @@ void Camera() {
             oled.setCursor(0, CenterY(35));
             oled.print("VelX:");
             oled.print(ball_velocity_x);
-            oled.setCursor(0, CenterY(40));
+            oled.setCursor(0, CenterY(50));
             oled.print("VelY:");
             oled.print(ball_velocity_y);
             oled.drawFilledEllipse(96 + (ball_dis / 6 + 3) * cos((ball_dir - 90) * PI / 180.000), 32 + (ball_dis / 6 + 3) * sin((ball_dir - 90) * PI / 180.000), 2, 2);
@@ -90,6 +92,8 @@ void Camera() {
                         center_dis = Serial.read();
                         own_x = Serial.read() - 100;
                         own_y = Serial.read() - 100;
+                        front_proximity = Serial.read();
+                        back_proximity = Serial.read();
                         while (Serial.available() > 0) Serial.read();
                   }
             }
@@ -114,7 +118,20 @@ void Camera() {
             oled.drawEllipse(101, 32, 9, 9);
             oled.drawEllipse(101, 32, 1, 1);
 
-            if (center_dis != 0) led.SetDegree(center_dir, 0, 1, 0);
+            if ((front_proximity >> 6) & 1) led.SetPixelColorSimply(13, 1, 0, 0);
+            if ((front_proximity >> 5) & 1) led.SetPixelColorSimply(14, 1, 0, 0);
+            if ((front_proximity >> 4) & 1) led.SetPixelColorSimply(15, 1, 0, 0);
+            if ((front_proximity >> 3) & 1) led.SetPixelColorSimply(0, 1, 0, 0);
+            if ((front_proximity >> 2) & 1) led.SetPixelColorSimply(1, 1, 0, 0);
+            if ((front_proximity >> 1) & 1) led.SetPixelColorSimply(2, 1, 0, 0);
+            if (front_proximity & 1) led.SetPixelColorSimply(3, 1, 0, 0);
+            if ((back_proximity >> 6) & 1) led.SetPixelColorSimply(5, 1, 0, 0);
+            if ((back_proximity >> 5) & 1) led.SetPixelColorSimply(6, 1, 0, 0);
+            if ((back_proximity >> 4) & 1) led.SetPixelColorSimply(7, 1, 0, 0);
+            if ((back_proximity >> 3) & 1) led.SetPixelColorSimply(8, 1, 0, 0);
+            if ((back_proximity >> 2) & 1) led.SetPixelColorSimply(9, 1, 0, 0);
+            if ((back_proximity >> 1) & 1) led.SetPixelColorSimply(10, 1, 0, 0);
+            if (back_proximity & 1) led.SetPixelColorSimply(11, 1, 0, 0);
       } else {
             sub_item = 0;
       }

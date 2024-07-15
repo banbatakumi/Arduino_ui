@@ -35,7 +35,7 @@ void ModeRun() {
             ButtonRead();
 
             led.Show();
-            if ((mode != 0 && is_moving == 0) || mode == 0) SendData();
+            SendData();
       } while (oled.nextPage());
 }
 
@@ -50,6 +50,7 @@ void SendData() {  // UART送信
       send_byte[5] = line_moving_speed;
       send_byte[6] = 0xAA;
       Serial.write(send_byte, send_byte_num);
+      Serial.flush();
 }
 
 void ButtonRead() {
